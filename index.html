@@ -115,7 +115,7 @@ button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
 .wkctl{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8125rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .wkctl button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;font-size:1rem;line-height:1;color:var(--ink)}
 .wkctl button:disabled{opacity:.3;cursor:default}
-.runlist{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.runlist{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .runlist div{background:var(--surface-2);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .runlist div.today{box-shadow:inset 0 0 0 1.5px var(--run)}
 .rd{font-size:.6875rem;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
@@ -148,6 +148,8 @@ details.grpd .row canvas{background:var(--surface-2)}
 .list > div:first-child{border-top:0}
 .list span:last-child{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
 .hl{display:flex;align-items:center;gap:12px;min-width:0}
+.list .hl span{color:var(--ink);text-align:left}
+.list .hl span .muted{color:var(--muted)}
 .badge-l{flex:none;width:34px;height:34px;border-radius:10px;background:var(--surface-2);color:var(--accent);display:grid;place-items:center;font-style:normal;font-weight:700;font-size:.8125rem;letter-spacing:-.01em}
 .badge-l.q{color:var(--warm)}
 .badge-l.r{color:var(--run)}
@@ -197,6 +199,24 @@ details.grpd .row canvas{background:var(--surface-2)}
 .radj{display:flex;gap:8px}
 .radj button{min-width:64px;min-height:44px;border-radius:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-weight:600;font-size:.875rem;cursor:pointer;font-variant-numeric:tabular-nums}
 
+/* gym / home switch */
+.where{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;margin-top:-8px}
+.where button{border:0;background:none;border-radius:10px;min-height:40px;font-weight:600;font-size:.875rem;color:var(--muted);cursor:pointer}
+.where button[aria-pressed="true"]{background:var(--surface-3);color:var(--ink)}
+/* daily habits */
+.habits{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.habits .kicker{color:var(--accent)}
+.hlist{display:flex;flex-direction:column;gap:6px}
+.hb{display:flex;align-items:center;gap:12px;text-align:left;background:var(--surface-2);border:0;border-radius:14px;padding:10px 12px;min-height:52px;cursor:pointer;color:var(--ink)}
+.hb i{flex:none;width:26px;height:26px;border-radius:8px;border:1.5px solid var(--surface-3);display:grid;place-items:center}
+.hb.on i{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.hb span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.hb b{font-weight:600;font-size:.9375rem}
+.hb small{font-size:.75rem;color:var(--muted)}
+.hb.on b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
+/* coach's notes */
+details.guide .inner{display:flex;flex-direction:column;gap:10px;padding-bottom:14px;color:var(--muted);font-size:.9375rem}
+details.guide .inner b{color:var(--ink);font-weight:600}
 /* set table (Set / Previous / Reps) */
 .sets{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
 .sets .sh,.sets .sr{display:grid;grid-template-columns:44px 1fr 1fr 36px;align-items:center;gap:8px;padding:0 14px}
@@ -309,6 +329,10 @@ details.grpd .row canvas{background:var(--surface-2)}
    Side view. Floor at y=180, logical canvas 300 x 215 (shifted down 25 so a bar fits at y=-7).
    Pose points: h head, s shoulder, p hip, e/w near elbow/hand, k/f near knee/foot; e2,w2,k2,f2 = far limbs. */
 const ANIM_BY_NAME = {
+  "Dumbbell bench press":"benchPress","Incline dumbbell press":"inclinePress","Dumbbell floor press":"floorPress","Lat pulldown":"latPulldown",
+  "Seated cable row":"cableRow","Couch hip thrust":"hipThrust","Hip thrust":"hipThrust","Face pull":"facePull","Assisted pull-up":"pullup",
+  "Feet-elevated push-ups":"pushup","Overhead dumbbell extension":"overheadExtDB","Dumbbell curl":"curl","Romanian deadlift":"rdl",
+  "Dumbbell split squat":"lunge","Single-leg Romanian deadlift":"rdl",
   "Arm circles":"armCircles","Leg swings":"legSwing","Bodyweight squats":"squat","Lunge with twist":"lunge","Dead hang":"deadHang",
   "Push-ups":"pushup","Goblet squat":"goblet","Dumbbell shoulder press":"press","Bulgarian split squat":"bulgarian",
   "Diamond push-ups":"pushup","Burpees":"burpee","Pull-ups":"pullup","One-arm dumbbell row":"row","Chin-ups":"pullup",
@@ -665,6 +689,34 @@ const ANIM = {
   overheadExt:{ms:1400, props:{cable:[95,176]}, keys:[
      Q({p:[150,100], sp:-65, hd:-58, f:[176,177], f2:[126,177], w:{a:[-72,160]}, w2:{a:[-76,156]}}),
      Q({p:[150,100], sp:-65, hd:-58, f:[176,177], f2:[126,177], w:{a:[-70,-68]}, w2:{a:[-74,-72]}})]},
+  // lying on a flat bench, face up, feet on the floor
+  benchPress:{ms:1300, face:-1, props:{db:"both", chair:[104,205,140]}, keys:[
+     Q({p:[128,130], sp:0, hd:2, f:[98,177], f2:[93,177], kb:-1, kb2:-1, w:{a:[-90,-90]}, w2:{a:[-92,-92]}}),
+     Q({p:[128,130], sp:0, hd:2, f:[98,177], f2:[93,177], kb:-1, kb2:-1, w:{a:[112,-88]}, w2:{a:[108,-90]}})]},
+  inclinePress:{ms:1300, face:-1, props:{db:"both", pads:[[124,146,190,108,12],[100,147,136,147,11]], lines:[[118,153,118,183,5],[176,122,176,183,5]]}, keys:[
+     Q({p:[124,132], sp:-32, hd:-30, f:[92,177], f2:[87,177], kb:-1, kb2:-1, w:{a:[-96,-96]}, w2:{a:[-98,-98]}}),
+     Q({p:[124,132], sp:-32, hd:-30, f:[92,177], f2:[87,177], kb:-1, kb2:-1, w:{a:[96,-92]}, w2:{a:[92,-94]}})]},
+  floorPress:{ms:1300, face:-1, props:{db:"both"}, keys:[
+     Q({p:[126,173], sp:0, hd:-4, f:[94,177], f2:[89,177], kb:-1, kb2:-1, w:{a:[-90,-90]}, w2:{a:[-92,-92]}}),
+     Q({p:[126,173], sp:0, hd:-4, f:[94,177], f2:[89,177], kb:-1, kb2:-1, w:{a:[176,-90]}, w2:{a:[172,-92]}})]},
+  // seated, thighs under the pad, pull the bar to the top of the chest
+  latPulldown:{ms:1400, props:{cable:[148,-34], chair:[116,160,140], pads:[[168,119,196,119,9]], lines:[[200,-34,200,183,5]]}, keys:[
+     Q({p:[140,130], sp:-98, hd:-96, f:{a:[0,92]}, f2:{a:[-3,90]}, w:{a:[-78,-78]}, w2:{a:[-82,-82]}}),
+     Q({p:[140,130], sp:-104, hd:-98, f:{a:[0,92]}, f2:{a:[-3,90]}, w:{a:[100,-68]}, w2:{a:[96,-72]}})]},
+  // seated, feet on the platform, pull the handle to the belly
+  cableRow:{ms:1400, props:{cable:[222,112], chair:[96,150,150], lines:[[192,136,192,166,6],[222,100,222,183,5]]}, keys:[
+     Q({p:[124,141], sp:-78, hd:-80, f:[186,150], f2:[182,150], w:{a:[4,4]}, w2:{a:[2,2]}}),
+     Q({p:[124,141], sp:-94, hd:-92, f:[186,150], f2:[182,150], w:{a:[166,16]}, w2:{a:[162,12]}})]},
+  // upper back on the bench, drive the hips up
+  hipThrust:{ms:1400, face:-1, hold:.18, props:{db:true, chair:[152,226,140]}, keys:[
+     Q({p:[118,160], sp:-37, hd:-36, f:[80,177], f2:[75,177], kb:-1, kb2:-1, w:[120,150], w2:[116,150]}),
+     Q({p:[111,128], sp:0, hd:-30, f:[80,177], f2:[75,177], kb:-1, kb2:-1, w:[114,118], w2:[110,118]})]},
+  // rope at face height, pull to the face with the elbows high
+  facePull:{ms:1300, props:{cable:[222,44], lines:[[226,-20,226,183,5]]}, keys:[
+     Q({p:[152,98], sp:-92, hd:-92, f:[168,177], f2:[138,177], w:{a:[-10,-10]}, w2:{a:[-13,-13]}}),
+     Q({p:[152,98], sp:-95, hd:-93, f:[168,177], f2:[138,177], w:{a:[-172,-56]}, w2:{a:[-176,-60]}})]},
+  overheadExtDB:{ms:1400, props:{db:true}, keys:[
+     STAND({sp:-92, w:{a:[-84,150]}, w2:{a:[-88,146]}}), STAND({sp:-92, w:{a:[-84,-86]}, w2:{a:[-88,-90]}})]},
   circuit:{seq:[["Pull-ups","pullup"],["Push-ups","pushup"],["Goblet squats","goblet"],["Plank","plank"]], each:3900},
 };
 function stillTime(name){ let a=ANIM[name]; if(!a) return 0; if(a.seq) a=ANIM[a.seq[0][1]]; return a.fn ? a.ms*.3 : a.ms*.95; }
@@ -689,51 +741,112 @@ const WARM = [
 ];
 const HANG_STEP = {name:"Dead hang", secs:30, cue:"Hang from the bar with relaxed shoulders. Loosens you up for pull day.", q:"dead hang pull up bar"};
 
-const GYM_DAYS = {G1:1, G2:1};
+/* ---------- the program ----------
+   4 days a week, upper/lower, every muscle twice a week. Built for a 16-17 year old beginner
+   whose goal is lean and defined: about 10-12 hard sets per muscle per week, stop 1-2 reps
+   before failure, add weight or reps when every set hits the top of the range.
+   Each day has a gym version (G) and a home version (H: dumbbells + pull-up bar).
+   lb:true logs weight at home too; bw:true marks bodyweight moves on gym days. */
+const PLAN = {
+  U1:{title:"Upper 1", focus:"Chest, back, shoulders, arms"},
+  L1:{title:"Lower 1", focus:"Quads, hamstrings, calves, abs"},
+  U2:{title:"Upper 2", focus:"Back, chest, shoulders, arms"},
+  L2:{title:"Lower 2", focus:"Glutes, legs, core"},
+};
+const ORDER = ["U1","L1","U2","L2"];
+const RIR = " Stop when you have 1–2 good reps left.";
 const DAY = {
-  G1:{title:"Gym legs", list:[
-    {name:"Leg press", sets:4, target:"8–12 reps", rest:120, cue:"Feet shoulder-width in the middle of the platform. Lower until your knees hit about 90°, push through your heels, don't lock your knees."},
-    {name:"Barbell Romanian deadlift", sets:3, target:"8–10 reps", rest:120, cue:"Bar close to your legs. Push your hips back with a flat back until you feel a strong hamstring stretch, then stand tall."},
-    {name:"Walking lunges", sets:3, target:"10 per leg", rest:90, perDb:true, cue:"Dumbbells at your sides. Long steps, back knee almost touches the floor."},
-    {name:"Leg extension", sets:3, target:"12–15 reps", rest:60, cue:"Pause one second at the top and lower slowly."},
-    {name:"Leg curl", sets:3, target:"10–12 reps", rest:60, cue:"Curl all the way and lower over 3 seconds. Keep your hips pressed into the pad."},
-    {name:"Standing calf raise", sets:4, target:"12–15 reps", rest:60, cue:"Full stretch at the bottom, pause and squeeze at the top."},
-    {name:"Cable crunch", sets:3, target:"12–15 reps", rest:60, cue:"Kneel facing the cable with the rope by your head. Crunch your ribs toward your hips without pulling with your arms."},
-  ]},
-  G2:{title:"Gym arms", list:[
-    {name:"Seated dumbbell shoulder press", sets:3, target:"8–12 reps", rest:120, perDb:true, cue:"Back flat on the bench. Lower to ear level and press up without clanking the dumbbells."},
-    {name:"Assisted dip", sets:3, target:"8–10 reps", rest:90, assist:true, cue:"The weight is help, so a lower number is harder. Stay upright and lower until your elbows reach 90°."},
+  U1G:{title:"Upper 1", list:[
+    {name:"Dumbbell bench press", sets:3, target:"8–10 reps", rest:120, perDb:true, cue:"Shoulder blades pinched together, feet flat. Lower the dumbbells to the sides of your chest over 2 seconds, press up."+RIR},
+    {name:"Lat pulldown", sets:3, target:"8–12 reps", rest:90, cue:"Hands a bit wider than shoulders. Lean back slightly and pull the bar to your upper chest by driving your elbows down. Control it up."},
+    {name:"Seated cable row", sets:3, target:"10–12 reps", rest:90, cue:"Sit tall, slight knee bend. Pull the handle to your belly button and squeeze your shoulder blades. Don't rock your body."},
+    {name:"Seated dumbbell shoulder press", sets:2, target:"8–12 reps", rest:90, perDb:true, cue:"Back flat on the bench. Lower to ear level and press up without clanking the dumbbells."},
+    {name:"Cable lateral raise", sets:3, target:"12–15 reps", rest:60, cue:"Lead with your elbow and raise to shoulder height. Side delts make your shoulders look wider and your waist smaller. Do both sides, then log the set."},
     {superset:[
       {name:"EZ-bar curl", target:"10–12 reps", cue:"Elbows pinned to your sides. No swinging."},
-      {name:"Rope pushdown", target:"10–12 reps", cue:"Elbows tucked. Spread the rope apart at the bottom and squeeze."}], rounds:3, rest:90},
-    {name:"Cable lateral raise", sets:4, target:"12–15 reps", rest:60, cue:"Lead with your elbow and raise to shoulder height. Do both sides, then log the set."},
+      {name:"Rope pushdown", target:"10–12 reps", cue:"Elbows tucked. Spread the rope apart at the bottom and squeeze."}], rounds:2, rest:60},
+  ]},
+  U1H:{title:"Upper 1", list:[
+    {name:"Push-ups", sets:3, target:"8–15 reps", bw:true, cue:"Straight line from head to heels, chest to an inch off the floor. All sets at 15? Put your feet on a chair next time."+RIR},
+    {name:"Pull-ups", sets:3, target:"5–10 reps", bw:true, cue:"Full hang at the bottom, chin over the bar. Fewer than 5? Jump to the top and lower yourself over 5 seconds."},
+    {name:"One-arm dumbbell row", sets:3, target:"10–12 per arm", lb:true, perDb:true, cue:"Hand and knee on a chair, flat back. Pull the dumbbell to your hip and squeeze. Both arms, then log the set."},
+    {name:"Dumbbell shoulder press", sets:2, target:"10–12 reps", lb:true, perDb:true, cue:"Standing, abs tight. Press overhead and lower slowly over 2 seconds."},
+    {name:"Dumbbell lateral raise", sets:3, target:"12–15 reps", lb:true, perDb:true, cue:"Slight bend in the elbows, raise out to the sides to shoulder height, lower over 3 seconds. Light weight, strict form."},
     {superset:[
-      {name:"Incline dumbbell curl", target:"10–12 reps", perDb:true, cue:"Bench at about 45°. Let your arms hang straight back and curl without moving your elbows."},
-      {name:"Overhead cable extension", target:"10–12 reps", cue:"Face away from a low cable, rope behind your head. Straighten your arms overhead, elbows pointing forward."}], rounds:3, rest:60},
-    {name:"Hammer curl", sets:3, target:"10–12 reps", rest:60, perDb:true, cue:"Palms facing each other, elbows at your sides."},
+      {name:"Dumbbell curl", target:"10–12 reps", lb:true, perDb:true, cue:"Elbows at your sides, palms up. No swinging."},
+      {name:"Diamond push-ups", target:"8–15 reps", bw:true, cue:"Hands close together under your chest. Works the triceps. Drop to your knees if needed."}], rounds:2, rest:60},
   ]},
-  A:{title:"Push and legs", list:[
-    {name:"Push-ups", sets:4, target:"As many as possible", cue:"Stop 1–2 reps before failure. Too easy? Put your feet up on a chair."},
-    {name:"Goblet squat", sets:4, target:"15–20 reps", cue:"Hold one 10 lb dumbbell at your chest. 3 seconds down, pause at the bottom.", q:"dumbbell goblet squat"},
-    {name:"Dumbbell shoulder press", sets:3, target:"12–15 reps", cue:"Press overhead, lower slowly over 3 seconds."},
-    {name:"Bulgarian split squat", sets:3, target:"10–12 per leg", cue:"Back foot on a couch or chair, dumbbells in hand. Do both legs, then log the set.", q:"dumbbell bulgarian split squat"},
-    {name:"Dumbbell lateral raise", sets:3, target:"15–20 reps", cue:"Arms slightly bent, raise the dumbbells out to your sides until shoulder height. Lower over 3 seconds. Builds wider shoulders for a V-taper."},
-    {name:"Diamond push-ups", sets:3, target:"As many as possible", cue:"Hands close together under your chest. Works the triceps."},
-    {name:"Burpees", sets:3, target:"10 reps", cue:"Finisher. Move fast, rest only 30 seconds.", rest:30},
+  L1G:{title:"Lower 1", list:[
+    {name:"Leg press", sets:3, target:"8–12 reps", rest:120, cue:"Feet shoulder-width in the middle of the platform. Lower until your knees reach about 90°, push through your whole foot, don't lock your knees."+RIR},
+    {name:"Romanian deadlift", sets:3, target:"8–10 reps", rest:120, cue:"Barbell or dumbbells close to your legs. Push your hips back with a flat back until you feel a strong hamstring stretch, then stand tall. Light weight until the form is perfect."},
+    {name:"Walking lunges", sets:2, target:"10 per leg", rest:90, perDb:true, cue:"Dumbbells at your sides. Long steps, back knee almost touches the floor, front knee tracks over your toes."},
+    {name:"Leg curl", sets:3, target:"10–12 reps", rest:60, cue:"Curl all the way and lower over 3 seconds. Hips stay pressed into the pad."},
+    {name:"Standing calf raise", sets:3, target:"12–15 reps", rest:60, cue:"Full stretch at the bottom, pause and squeeze at the top."},
+    {name:"Cable crunch", sets:2, target:"12–15 reps", rest:60, cue:"Kneel facing the cable, rope by your head. Crunch your ribs toward your hips without pulling with your arms."},
   ]},
-  B:{title:"Pull and core", list:[
-    {name:"Pull-ups", sets:5, target:"As many as possible", cue:"Can't do many? Jump to the top and lower yourself over 5 seconds."},
-    {name:"One-arm dumbbell row", sets:4, target:"12–15 per arm", cue:"Hand and knee on a chair. Squeeze your shoulder blade at the top. Both arms, then log the set."},
-    {name:"Chin-ups", sets:3, target:"As many as possible", cue:"Palms facing you. Full hang at the bottom."},
-    {name:"Dumbbell Romanian deadlift", sets:3, target:"15 reps", cue:"Push hips back, slight knee bend, flat back. Feel the hamstrings stretch."},
-    {name:"Hanging knee raises", sets:3, target:"10–15 reps", cue:"No swinging. Curl your knees to your chest and lower slowly."},
-    {name:"Mountain climbers", sets:3, target:"30 seconds fast", cue:"Finisher. Push-up position, drive your knees to your chest one at a time as fast as you can with a flat back.", timed:30, rest:30},
-    {name:"Plank", sets:3, target:"45–60 seconds", cue:"Squeeze glutes and abs. Straight line from head to heels.", timed:50},
+  L1H:{title:"Lower 1", list:[
+    {name:"Goblet squat", sets:3, target:"10–15 reps", lb:true, cue:"Hold a dumbbell at your chest. 3 seconds down, chest up, knees out, full depth."+RIR, q:"dumbbell goblet squat"},
+    {name:"Dumbbell Romanian deadlift", sets:3, target:"10–12 reps", lb:true, perDb:true, cue:"Push your hips back with a flat back and a slight knee bend. Stop when you feel a strong hamstring stretch, then stand tall."},
+    {name:"Dumbbell split squat", sets:2, target:"10–12 per leg", lb:true, perDb:true, cue:"Long split stance, drop your back knee straight down toward the floor. Both legs, then log the set.", q:"dumbbell split squat"},
+    {name:"Couch hip thrust", sets:3, target:"12–15 reps", lb:true, cue:"Upper back on the couch edge, dumbbell on your hips. Drive your hips up until your body is flat, squeeze your glutes for a second.", q:"dumbbell hip thrust couch"},
+    {name:"Standing calf raise", sets:3, target:"15–20 reps", lb:true, perDb:true, cue:"On a step if you can. Full stretch at the bottom, pause at the top. Too easy? One leg at a time."},
+    {name:"Hanging knee raises", sets:2, target:"10–15 reps", bw:true, cue:"No swinging. Curl your knees to your chest and lower slowly."},
+  ]},
+  U2G:{title:"Upper 2", list:[
+    {name:"Assisted pull-up", sets:3, target:"6–10 reps", rest:120, assist:true, cue:"The weight is help, so a lower number is harder. Full hang, chin over the bar. Can do 10 without help? Switch to regular pull-ups.", q:"assisted pull up machine"},
+    {name:"Incline dumbbell press", sets:3, target:"8–12 reps", rest:120, perDb:true, cue:"Bench at about 30°. Lower to the top of your chest, press up and slightly in. Builds the upper chest."+RIR},
+    {name:"One-arm dumbbell row", sets:3, target:"10–12 per arm", rest:90, perDb:true, cue:"Hand and knee on the bench, flat back. Pull the dumbbell to your hip and squeeze. Both arms, then log the set."},
+    {name:"Assisted dip", sets:2, target:"8–12 reps", rest:90, assist:true, cue:"Lower number is harder. Stay upright and lower until your elbows reach 90°."},
+    {name:"Face pull", sets:2, target:"12–15 reps", rest:60, cue:"Rope at face height. Pull it toward your forehead with your elbows high and wide. Strengthens the upper back for better posture.", q:"cable face pull"},
+    {name:"Cable lateral raise", sets:2, target:"12–15 reps", rest:60, cue:"Lead with your elbow to shoulder height. Both sides, then log the set."},
+    {superset:[
+      {name:"Incline dumbbell curl", target:"10–12 reps", perDb:true, cue:"Bench at about 45°. Arms hang straight back, curl without moving your elbows."},
+      {name:"Overhead cable extension", target:"10–12 reps", cue:"Face away from a low cable, rope behind your head. Straighten your arms overhead, elbows pointing forward."}], rounds:2, rest:60},
+  ]},
+  U2H:{title:"Upper 2", list:[
+    {name:"Chin-ups", sets:3, target:"5–10 reps", bw:true, cue:"Palms facing you, full hang at the bottom. Fewer than 5? Do slow 5-second lowerings."},
+    {name:"Dumbbell floor press", sets:3, target:"10–12 reps", lb:true, perDb:true, cue:"Lie on the floor, knees bent. Lower until your upper arms touch the floor, pause, press up.", q:"dumbbell floor press"},
+    {name:"One-arm dumbbell row", sets:3, target:"10–12 per arm", lb:true, perDb:true, cue:"Hand and knee on a chair, flat back. Pull to your hip. Both arms, then log the set."},
+    {name:"Feet-elevated push-ups", sets:2, target:"8–15 reps", bw:true, cue:"Feet on a chair, hands on the floor. Harder than regular push-ups and hits the upper chest."},
+    {name:"Dumbbell lateral raise", sets:3, target:"12–15 reps", lb:true, perDb:true, cue:"Slight bend in the elbows, raise to shoulder height, lower over 3 seconds."},
+    {superset:[
+      {name:"Hammer curl", target:"10–12 reps", lb:true, perDb:true, cue:"Palms facing each other, elbows at your sides."},
+      {name:"Overhead dumbbell extension", target:"10–12 reps", lb:true, cue:"Hold one dumbbell overhead with both hands. Lower it behind your head, elbows pointing up, then straighten."}], rounds:2, rest:60},
+  ]},
+  L2G:{title:"Lower 2", list:[
+    {name:"Bulgarian split squat", sets:3, target:"8–10 per leg", rest:90, perDb:true, cue:"Back foot on the bench, dumbbells in hand. Drop straight down, front heel stays planted. Both legs, then log the set."+RIR, q:"dumbbell bulgarian split squat"},
+    {name:"Hip thrust", sets:3, target:"8–12 reps", rest:120, cue:"Upper back on the bench, bar or machine pad across your hips. Drive up until your body is flat, chin tucked, squeeze your glutes for a second.", q:"barbell hip thrust"},
+    {name:"Leg extension", sets:2, target:"12–15 reps", rest:60, cue:"Pause one second at the top and lower slowly."},
+    {name:"Leg curl", sets:2, target:"10–12 reps", rest:60, cue:"Curl all the way and lower over 3 seconds."},
+    {name:"Standing calf raise", sets:3, target:"12–15 reps", rest:60, cue:"Full stretch at the bottom, pause and squeeze at the top."},
+    {name:"Hanging knee raises", sets:2, target:"10–15 reps", rest:60, bw:true, cue:"No swinging. Curl your knees to your chest and lower slowly."},
+    {name:"Plank", sets:2, target:"45 seconds", bw:true, cue:"Squeeze glutes and abs. Straight line from head to heels.", timed:45},
+  ]},
+  L2H:{title:"Lower 2", list:[
+    {name:"Bulgarian split squat", sets:3, target:"10–12 per leg", lb:true, perDb:true, cue:"Back foot on a couch or chair, dumbbells in hand. Drop straight down. Both legs, then log the set."+RIR, q:"dumbbell bulgarian split squat"},
+    {name:"Couch hip thrust", sets:3, target:"12–15 reps", lb:true, cue:"Upper back on the couch edge, dumbbell on your hips. Drive up until flat, squeeze your glutes for a second.", q:"dumbbell hip thrust couch"},
+    {name:"Single-leg Romanian deadlift", sets:2, target:"10 per leg", lb:true, perDb:true, cue:"Stand on one leg, hinge forward with a flat back as the other leg reaches back. Hold a wall for balance at first.", q:"single leg romanian deadlift dumbbell"},
+    {name:"Goblet squat", sets:2, target:"12–15 reps", lb:true, cue:"Pause 2 seconds at the bottom of every rep.", q:"dumbbell goblet squat"},
+    {name:"Standing calf raise", sets:3, target:"15–20 reps", lb:true, perDb:true, cue:"On a step if you can. Too easy? One leg at a time."},
+    {name:"Plank", sets:2, target:"45 seconds", bw:true, cue:"Squeeze glutes and abs. Straight line from head to heels.", timed:45},
+    {name:"Mountain climbers", sets:2, target:"30 seconds fast", bw:true, cue:"Finisher. Drive your knees to your chest one at a time as fast as you can, flat back.", timed:30, rest:30},
   ]},
   M:{title:"Quick circuit", list:[
     {name:"Quick circuit", sets:3, target:"Max pull-ups · 20 push-ups · 20 goblet squats · 30s plank", cue:"One round = all four exercises back to back. Rest 60 seconds between rounds.", q:"pull ups push ups goblet squat plank circuit", noLog:true},
   ]},
 };
+const HARDER = {
+  "Push-ups":"Put your feet on a chair to make it harder.",
+  "Feet-elevated push-ups":"Add a 2-second pause with your chest just off the floor.",
+  "Diamond push-ups":"Put your feet on a chair to make it harder.",
+  "Pull-ups":"Lower yourself over 3 seconds on every rep, or hold a dumbbell between your feet.",
+  "Chin-ups":"Lower yourself over 3 seconds on every rep, or hold a dumbbell between your feet.",
+  "Hanging knee raises":"Straighten your legs more as you raise them.",
+};
+const isGym = id => /G$/.test(id);
+/* Titles for workouts logged under the old plan, so history still reads right. */
+const LEGACY = {A:"Push and legs", B:"Pull and core", G1:"Gym legs", G2:"Gym arms"};
+const dayTitle = id => (DAY[id]||{}).title || LEGACY[id] || "Workout";
 
 const COOL_ALL = [
   {name:"Hamstring stretch", secs:40, cue:"Sit, legs straight, reach toward your toes. Breathe slowly.", q:"seated hamstring stretch"},
@@ -752,7 +865,7 @@ const store = {
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
 
-function suggested(){const last = store.get("lastDay"); return last==="A" ? "B" : "A";}
+function suggested(){ const i=ORDER.indexOf(store.get("lastDay")); return ORDER[(i+1)%ORDER.length]; }   // old A/B values start at Upper 1
 
 /* Quick circuit: 3 rounds of four moves, each its own screen. Plank is a 30-second timer. */
 const CIRCUIT = [
@@ -769,31 +882,31 @@ function circuitSteps(){
   }
   return out;
 }
-function gymSteps(day){
-  const warm = [{name:"Incline walk", secs:300, kind:"warm", cue:"5 minutes at 8–10% incline. Then do one light set of your first exercise before the real sets."},
-    ...(day==="G1" ? [WARM[1], WARM[2]] : [WARM[0], WARM[3]]).map(x=>({...x, kind:"warm"}))];
-  const work = [];
-  DAY[day].list.forEach(x=>{
-    if(!x.superset){ work.push({...x, kind:"work", weighted:true}); return; }
+/* Turns a day into warm-up, work and cool-down steps. Supersets alternate A, B, rest. */
+function workSteps(id){
+  const gym=isGym(id), W=y=>!y.bw && (gym || !!y.lb), out=[];
+  DAY[id].list.forEach(x=>{
+    if(!x.superset){ out.push({...x, kind:"work", weighted:W(x)}); return; }
     const [A,B] = x.superset;
     for(let r=1; r<=x.rounds; r++){
-      work.push({...A, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:true, logKey:A.name, logIdx:r-1, cue:A.cue+` Then go straight to ${B.name.toLowerCase()}.`});
-      work.push({...B, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:true, logKey:B.name, logIdx:r-1});
-      if(r<x.rounds) work.push({name:"Rest", secs:x.rest, kind:"work", isRest:true, cue:`Superset rest. Next: ${A.name.toLowerCase()}, set ${r+1} of ${x.rounds}.`});
+      out.push({...A, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:W(A), logKey:A.name, logIdx:r-1, cue:A.cue+` Then go straight to ${B.name.toLowerCase()}.`});
+      out.push({...B, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:W(B), logKey:B.name, logIdx:r-1});
+      if(r<x.rounds) out.push({name:"Rest", secs:x.rest, kind:"work", isRest:true, cue:`Superset rest. Next: ${A.name.toLowerCase()}, round ${r+1} of ${x.rounds}.`});
     }
   });
-  const cool = (day==="G1" ? COOL_ALL : [COOL_A, COOL_B, COOL_ALL[3]]).map(x=>({...x, kind:"cool"}));
-  return [...warm, ...work, ...cool];
+  return out;
 }
-function buildSteps(day){
-  if(GYM_DAYS[day]) return gymSteps(day);
-  const warm = day==="B" ? [...WARM, HANG_STEP] : (day==="M" ? WARM.slice(0,2).concat([WARM[2]]) : WARM);
-  const cool = day==="M" ? COOL_ALL.slice(0,3) : [day==="A"?COOL_A:COOL_B, ...COOL_ALL];
-  return [
-    ...warm.map(x=>({...x, kind:"warm"})),
-    ...(day==="M" ? circuitSteps() : DAY[day].list.map(x=>({...x, kind:"work"}))),
-    ...cool.map(x=>({...x, kind:"cool"})),
-  ];
+function buildSteps(id){
+  if(id==="M") return [...[WARM[0],WARM[1],WARM[2]].map(x=>({...x, kind:"warm"})), ...circuitSteps(), ...COOL_ALL.slice(0,3).map(x=>({...x, kind:"cool"}))];
+  const gym=isGym(id), upper=id[0]==="U", pulls=/^U/.test(id) && !gym;
+  const warm = [
+    ...(gym ? [{name:"Incline walk", secs:180, cue:"3 minutes, brisk, at an incline. Then do one light warm-up set of your first exercise before the real sets."}] : []),
+    ...(upper ? [WARM[0], WARM[3]] : [WARM[1], WARM[2], WARM[3]]),
+    ...(pulls ? [HANG_STEP] : [])];
+  const cool = [
+    ...(gym ? [{name:"Incline walk", secs:480, cue:"Optional: 8 minutes at a brisk pace burns extra calories without hurting recovery. Skip it if you're short on time."}] : []),
+    ...(upper ? [COOL_A, COOL_B, COOL_ALL[3]] : COOL_ALL)];
+  return [...warm.map(x=>({...x, kind:"warm"})), ...workSteps(id), ...cool.map(x=>({...x, kind:"cool"}))];
 }
 
 const $ = h => {document.getElementById("app").innerHTML = h;};
@@ -801,27 +914,29 @@ const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&
 const fmt = s => (s>=60? Math.floor(s/60)+":"+String(s%60).padStart(2,"0") : s);
 
 /* ---------- start screen ---------- */
-let pick = suggested();
-const DAY_META = {A:{label:"Day A", mins:35}, B:{label:"Day B", mins:35}, M:{label:"Busy day", mins:12}, G1:{label:"Gym legs", mins:55}, G2:{label:"Gym arms", mins:50}};
-const EQUIP = {A:"Dumbbells", B:"Pull-up bar, dumbbells", M:"Pull-up bar, dumbbell", G1:"Gym machines", G2:"Gym machines"};
+let pick = suggested(), where = store.get("where")==="home" ? "home" : "gym";
+const curId = () => pick==="M" ? "M" : pick + (where==="gym" ? "G" : "H");
+const minsFor = id => id==="M" ? 12 : isGym(id) ? 50 : 40;
 function dose(s){ return s.secs ? (s.secs>=120 && s.secs%60===0 ? s.secs/60+" min" : s.secs+" sec") : s.sets+" × "+s.target; }
 function isoDay(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-const LETTER = {A:"A", B:"B", M:"Q", R:"R", G1:"L", G2:"Ar"};
-const LETTER_NAME = {A:"Day A", B:"Day B", Q:"Quick circuit", R:"Run", L:"Gym legs", Ar:"Gym arms"};
+/* Short badge for a logged session, plus its name for tooltips. Old-plan keys still work. */
+const LETTER_OLD = {A:"A", B:"B", M:"Q", R:"R", G1:"L", G2:"Ar"};
+const letterOf = d => /^[UL][12]/.test(d) ? d.slice(0,2) : (LETTER_OLD[d]||"·");
+const nameOf = d => d==="R" ? "Run" : d==="M" ? "Quick circuit" : dayTitle(d) + (/G$/.test(d) ? " (gym)" : /H$/.test(d) ? " (home)" : "");
 function getHistory(){ const h = store.get("history"); return Array.isArray(h) ? h : []; }
 function weekStrip(){
   const done = new Set(store.get("doneDates")||[]), now = new Date();
-  const byDate = {}; getHistory().forEach(e=>{ (byDate[e.date] = byDate[e.date]||[]).push(LETTER[e.day]); });
+  const byDate = {}; getHistory().forEach(e=>{ (byDate[e.date] = byDate[e.date]||[]).push(e.day); });
   const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay()+6)%7));
   return `<div class="week" aria-label="This week">${["M","T","W","T","F","S","S"].map((l,i)=>{
     const d = new Date(mon); d.setDate(mon.getDate()+i); const key = isoDay(d);
     const did = byDate[key], label = d.getDate();
-    const title = did ? ` title="${did.map(x=>LETTER_NAME[x]||x).join(", ")}"` : "";
+    const title = did ? ` title="${did.map(nameOf).join(", ")}"` : "";
     return `<div class="wd ${(did||done.has(key))?"on":""} ${key===isoDay(now)?"today":""}"${title}><span>${l}</span><i>${label}</i></div>`;
   }).join("")}</div>`;
 }
 /* ---------- running plan (6 weeks, runs Mon / Wed / Fri / Sat) ---------- */
-const RUN_DAYS = {0:"easy", 2:"easy", 4:"fast", 5:"long"};
+const RUN_DAYS = {2:"easy", 5:"long"};   // optional: lifting is the priority, steps do most of the extra burning
 const WD_NAMES = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 function mondayOf(d){ const m=new Date(d); m.setHours(12,0,0,0); m.setDate(m.getDate()-((m.getDay()+6)%7)); return m; }
 /* The plan starts the week someone first opens the app. Saved so it stays put. */
@@ -875,7 +990,7 @@ function historyBlock(){
   return `<div class="section"><div class="sechead"><h3>History</h3><span class="muted small">${h.length} ${h.length===1?"workout":"workouts"}</span></div>
     <div class="list hist">${list.map(e=>{
       const d = new Date(e.date+"T12:00:00");
-      return `<div><span class="hl"><i class="badge-l ${e.day==="M"?"q":e.day==="R"?"r":GYM_DAYS[e.day]?"g":""}">${LETTER[e.day]}</i><span><b>${esc(e.title||(DAY[e.day]||{}).title||"Workout")}</b><br><span class="muted small">${esc(d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}))}</span></span></span>
+      return `<div><span class="hl"><i class="badge-l ${e.day==="M"?"q":e.day==="R"?"r":/^L/.test(e.day)?"g":""}">${letterOf(e.day)}</i><span><b>${esc(e.title||nameOf(e.day))}</b><br><span class="muted small">${esc(d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}))}</span></span></span>
         <span class="small">${e.mins} min${e.reps?`<br>${e.reps} reps`:""}</span></div>`;}).join("")}</div>
     ${h.length>5?`<button class="morebtn" onclick="showAll=!showAll;home()">${showAll?"Show less":"Show all "+h.length}</button>`:""}</div>`;
 }
@@ -936,10 +1051,10 @@ function weighCard(){
     note=!last?"Log your first weigh-in to start tracking.":due?"Check in today to see your weekly trend.":`Check in again on ${nd.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} to see your weekly trend.`;
   } else {
     const r=Math.abs(rate).toFixed(1);
-    if(rate<=-1.6){ pill=`<span class="pill warn">Dropping fast</span>`; note=`Losing ${r} lb a week. Faster than 1.5 lb a week can cost muscle, so eat enough protein and don't skip meals.`; }
-    else if(rate<=-0.3){ pill=`<span class="pill good">On track</span>`; note=`Losing ${r} lb a week. That's the right pace to drop fat and keep your muscle.`; }
-    else if(rate<0.3){ pill=`<span class="pill">Holding steady</span>`; note=`About the same for the last few weeks. If it stays flat 2 more weeks, eat out less or add a walk on rest days.`; }
-    else { pill=`<span class="pill up">Going up</span>`; note=`Up ${r} lb a week. Look at how often you're eating out and at late-night snacks this week.`; }
+    if(rate<=-1.1){ pill=`<span class="pill warn">Too fast</span>`; note=`Losing ${r} lb a week. While you're still growing, more than about 1 lb a week costs muscle and energy. Eat a bit more, especially protein and carbs around training.`; }
+    else if(rate<=-0.25){ pill=`<span class="pill good">On track</span>`; note=`Losing ${r} lb a week. A steady pace that keeps your muscle while the fat comes off.`; }
+    else if(rate<0.3){ pill=`<span class="pill">Holding steady</span>`; note=`About the same weight. That's fine if your lifts are going up and your waist is getting smaller: you're building muscle and losing fat. If nothing changes in 3 weeks, cut sugary drinks and snacks first.`; }
+    else { pill=`<span class="pill up">Going up</span>`; note=`Up ${r} lb a week. Some gain is normal while you're growing and building muscle. If your waist is growing too, cut back on snacks, sugary drinks and late-night eating.`; }
   }
   const change = last && w.length>1 ? Math.round((last.lb-first.lb)*10)/10 : null;
   const form = `<div class="wform">
@@ -974,14 +1089,14 @@ function runCard(){
   }).join("");
   return `<section class="runbox" aria-label="Running">
     <div class="runtop"><div>
-        <p class="kicker">${type?(doneToday?"Run · Done today":"Run · Today"):"Run · Rest day"}</p>
-        <h3>${type?esc(p.title):"Rest your legs"}</h3></div>
+        <p class="kicker">${type?(doneToday?"Optional cardio · Done":"Optional cardio · Today"):"Optional cardio"}</p>
+        <h3>${type?esc(p.title):"No run today"}</h3></div>
       <span class="wkctl"><button onclick="shiftWeek(-1)" aria-label="Previous week" ${w<=1?"disabled":""}>‹</button><span>Week ${w}${w>6?"":"/6"}</span><button onclick="shiftWeek(1)" aria-label="Next week">›</button></span></div>
-    <p class="meta">${type?`${p.mins} min. ${esc(p.summary)}.`:`${wd===6?"Rest day. A walk is fine.":"No run on the plan today."} ${nextTxt}`}</p>
+    <p class="meta">${type?`${p.mins} min. ${esc(p.summary)}.`:`Lifting comes first. ${nextTxt}`}</p>
     ${type&&!doneToday?`<div class="runbtns"><button class="btn" onclick="logRun('${type}')">I already ran</button><button class="btn light" onclick="startRun('${type}')">Start run</button></div>`:""}
     ${doneToday?`<div class="runbtns"><button class="btn" onclick="unlogRun()">Undo, I didn't run today</button></div><p class="muted small">You can undo until midnight. After that, today's run is locked in.</p>`:""}
     <div class="runlist">${rows}</div>
-    <p class="muted small">${w>6?"Plan finished. Repeat week 6, or sign up for a 5K.":"Easy means you can still talk. Sore shins or knees? Take an extra rest day."}</p>
+    <p class="muted small">${w>6?"Plan finished. Repeat week 6, or sign up for a 5K.":"Only if you have energy left. Easy means you can still talk. Sore shins or knees? Skip it and walk instead."}</p>
   </section>`;
 }
 /* ---------- weekly goal: forgiving, counts any session, streak is in weeks ---------- */
@@ -995,6 +1110,60 @@ function weekStreak(){
   for(let i=0;i<104;i++){ m.setDate(m.getDate()-7); if(sessionsIn(isoDay(m))>=g) n++; else break; }
   return n;
 }
+/* ---------- daily habits: the things outside the gym that decide how lean you get ---------- */
+function proteinRange(){
+  const w=getWeights(), lb=w.length?w[w.length-1].lb:null;
+  if(!lb) return {txt:"Protein at every meal", amount:"0.7–0.9 g per lb of body weight", sub:"About 0.7–0.9 g per lb of body weight a day"};
+  const kg=lb/2.2046, r5=x=>Math.round(x/5)*5, amount=`${r5(kg*1.6)}–${r5(kg*2.0)} g`;   // 1.6–2.0 g/kg: adolescent athlete range
+  return {txt:`Protein: ${amount}`, amount, sub:"Spread over 3–4 meals: eggs, Greek yogurt, milk, chicken, fish, beans"};
+}
+function habitList(){ const pr=proteinRange(); return [
+  {k:"protein", t:pr.txt, s:pr.sub},
+  {k:"steps", t:"8,000+ steps", s:"Walking to school and around counts"},
+  {k:"sleep", t:"8–10 hours of sleep", s:"Short sleep while losing fat costs muscle"},
+  {k:"drinks", t:"Water, no sugary drinks", s:"Soda and energy drinks are easy calories to cut"},
+  {k:"plants", t:"Fruit or veg at 2+ meals", s:"Keeps you full on fewer calories"}]; }
+function toggleHabit(k){ const key="habits:"+isoDay(new Date()), d=new Set(store.get(key)||[]); d.has(k)?d.delete(k):d.add(k); store.set(key,[...d]); home(); }
+function habitsCard(){
+  const today=new Set(store.get("habits:"+isoDay(new Date()))||[]), L=habitList(), n=L.filter(h=>today.has(h.k)).length;
+  let streak=0; for(let i=1;i<60;i++){ const d=new Date(); d.setDate(d.getDate()-i); if((store.get("habits:"+isoDay(d))||[]).length>=4) streak++; else break; }
+  if(today.size>=4) streak++;
+  return `<section class="habits" aria-label="Daily habits">
+    <div class="runtop"><div><p class="kicker">Today</p><h3>Daily habits</h3></div><span class="pill ${n>=4?"good":""}">${n} of ${L.length}${streak>1?` · ${streak}-day streak`:""}</span></div>
+    <div class="hlist">${L.map(h=>`<button class="hb ${today.has(h.k)?"on":""}" aria-pressed="${today.has(h.k)}" onclick="toggleHabit('${h.k}')">
+      <i aria-hidden="true">${today.has(h.k)?'<svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>':""}</i>
+      <span><b>${esc(h.t)}</b><small>${esc(h.s)}</small></span></button>`).join("")}</div>
+    <p class="small muted">4 of 5 on most days is a win. The gym builds the muscle; these decide how lean you get.</p>
+  </section>`;
+}
+/* ---------- the coach's notes ---------- */
+function planGuide(){
+  const pr=proteinRange();
+  const sec=(t,body)=>`<details class="grpd guide"><summary><b>${t}</b></summary><div class="inner">${body}</div></details>`;
+  return `<div class="section"><div class="sechead"><h3>How this plan works</h3></div>
+  ${sec("Your week",`<p>Lift 4 days: <b>Upper 1, Lower 1, Upper 2, Lower 2</b>, in that order. The app always suggests the next one.</p>
+    <p>Example: Mon Upper 1, Tue Lower 1, Thu Upper 2, Fri Lower 2. Any 4 days work, but try not to lift 3 days in a row.</p>
+    <p>Every muscle gets trained twice a week, which builds muscle better than once. Each day has a gym and a home version, so a missed gym trip never breaks the week.</p>
+    <p>Other days: walk, play sport, or do the optional easy run. Take at least one full rest day.</p>`)}
+  ${sec("How to get stronger",`<p><b>Stop each set with 1–2 good reps left.</b> Not to failure: you grow just as well and recover faster.</p>
+    <p><b>Double progression.</b> Each exercise has a rep range like 8–12. Use the same weight until you hit the top on every set, then add 5 lb next time and start at the bottom of the range again. The app tracks this and tells you when.</p>
+    <p>Bodyweight moves get harder instead of heavier: feet on a chair for push-ups, slow 3-second lowerings for pull-ups.</p>
+    <p>Form beats weight. If a rep looks ugly, the set is over. Watch the form video the first time you do anything new.</p>`)}
+  ${sec("Eating to get lean",`<p>You're still growing, so <b>no crash diets.</b> Lose no more than about 1 lb a week, or simply hold your weight while getting stronger. As a beginner you can build muscle and lose fat at the same time.</p>
+    <p><b>${esc(pr.amount)} of protein a day</b>, spread over 3–4 meals. Easy sources: eggs, Greek yogurt, milk, chicken, tuna, lean beef, beans, tofu.</p>
+    <p>Build each plate from protein, vegetables or fruit, and some carbs (rice, potatoes, bread, oats), with more carbs around training. Cut sugary drinks, energy drinks and most fast food first. Don't skip meals.</p>
+    <p>If you're always tired, cold, dizzy, or your lifts keep dropping, you're eating too little. Eat more and talk to a parent or doctor.</p>`)}
+  ${sec("The truth about a sharp jawline",`<p><b>It comes from lower body fat overall.</b> You can't burn fat from one spot, so the face leans out as the rest of you does. Your jaw and face also keep maturing into your early twenties.</p>
+    <p><b>Skip mewing and jaw trainers.</b> There's no good evidence mewing changes adult bone, and jaw exercisers or very hard gum can strain your jaw joint.</p>
+    <p><b>What actually helps:</b> steady fat loss; good posture (face pulls and rows train the upper back, and a forward head softens the jaw angle); less salty food, sugary drinks and late-night junk, which make the face puffy; and enough sleep.</p>`)}
+  ${sec("Sleep, steps, supplements",`<p><b>8–10 hours of sleep</b> is what teens need. In studies, people on a diet who slept 5.5 hours lost more muscle and less fat than those who slept 8.5.</p>
+    <p><b>8,000+ steps a day</b> burns more over a week than most cardio sessions, and doesn't tire your legs for lifting.</p>
+    <p><b>No supplements needed.</b> Skip fat burners, testosterone boosters and pre-workouts. Creatine is well studied in adults; wait until you're 18 and ask a doctor. Food first, protein powder only if meals fall short.</p>`)}
+  ${sec("Checking progress",`<p>Weigh in once a week, same morning routine. Every 2 weeks, take a photo in the same light and measure your waist at the belly button.</p>
+    <p>If your weight holds steady but your waist shrinks and your lifts go up, it's working: you're swapping fat for muscle.</p>
+    <p>Sharp joint pain means stop that exercise. Normal muscle soreness is fine. Feeling run down for a week? Take 2 easy days.</p>`)}
+  </div>`;
+}
 function greet(){ const h=new Date().getHours(); return h<5?"Good evening":h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
 function goalRing(done, goal){
   const C=2*Math.PI*24, f=Math.min(1,done/goal);
@@ -1005,17 +1174,16 @@ function home(){
   stopTimer(); setPhase("home"); document.documentElement.classList.remove("tbl");
   if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }
   const sh=document.getElementById("sheet"); if(sh) sh.remove();
-  const next = suggested(), steps = buildSteps(pick);
+  const next = suggested(), id = curId(), steps = buildSteps(id), mins = minsFor(id);
   const work = pick==="M" ? CIRCUIT.map(x=>({...x, sets:3, target:x.timed?"30 sec":x.target}))
-    : GYM_DAYS[pick] ? DAY[pick].list.flatMap(x=>x.superset ? x.superset.map((y,i)=>({...y, sets:x.rounds, target:`${y.target}, superset with ${x.superset[1-i].name.toLowerCase()}`})) : [x])
-    : steps.filter(s=>s.kind==="work");
+    : DAY[id].list.flatMap(x=>x.superset ? x.superset.map((y,i)=>({...y, sets:x.rounds, target:`${y.target}, superset with ${x.superset[1-i].name.toLowerCase()}`})) : [x]);
   const today = new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
   const mon = isoDay(mondayOf(new Date())), weekCount = sessionsIn(mon), goal = weekGoal(), streak = weekStreak();
   const row = s => `<div class="row"><canvas class="thumb" data-anim="${ANIM_BY_NAME[s.name]||""}" aria-hidden="true"></canvas>
      <div><b>${esc(s.name)}</b><span>${esc(dose(s))}</span></div></div>`;
   const grp = (label, list) => `<details class="grpd" ontoggle="paintThumbs()"><summary><b>${label}</b><span>${list.length} moves, ${Math.round(list.reduce((a,x)=>a+(x.secs||0),0)/60)} min</span></summary><div class="inner">${list.map(row).join("")}</div></details>`;
-  const titleLines = {A:"Push &amp; legs", B:"Pull &amp; core", M:"Quick circuit", G1:"Gym legs", G2:"Gym arms"}[pick];
-  const kicker = pick==="M" ? "Busy-day version" : GYM_DAYS[pick] ? `Gym · replaces Day ${pick==="G1"?"A":"B"}` : `${DAY_META[pick].label}${pick===next?" · Up next":""}`;
+  const titleLines = pick==="M" ? "Quick circuit" : esc(PLAN[pick].focus);
+  const kicker = pick==="M" ? "Busy-day version" : `${PLAN[pick].title}${pick===next?" · Up next":""}`;
   $(`
    <header class="mast">
      <div class="wordmark"><span class="brand"><i aria-hidden="true"></i>KONG</span><h1>${greet()}</h1><span>${esc(today)}</span></div>
@@ -1025,22 +1193,25 @@ function home(){
    ${weekStrip()}
    ${goalOpen?`<div class="goalset"><div><b>Weekly goal</b><p class="small muted">Workouts and runs both count.</p></div>
      <div class="stepper"><button onclick="setGoal(-1)" aria-label="Lower goal">−</button><output aria-live="polite">${goal}</output><button onclick="setGoal(1)" aria-label="Raise goal">+</button></div></div>`:""}
-   <div class="chips" role="group" aria-label="Choose a workout">${["A","B","M"].map(k=>`<button aria-pressed="${pick===k}" onclick="pick='${k}';home()">${k==="M"?"Quick":"Day "+k}</button>`).join("")}<span class="div" aria-hidden="true"></span>${["G1","G2"].map(k=>`<button aria-pressed="${pick===k}" onclick="pick='${k}';home()">${k==="G1"?"Gym legs":"Gym arms"}</button>`).join("")}</div>
+   <div class="chips" role="group" aria-label="Choose a workout">${ORDER.map(k=>`<button aria-pressed="${pick===k}" onclick="pick='${k}';home()">${PLAN[k].title}</button>`).join("")}<span class="div" aria-hidden="true"></span><button aria-pressed="${pick==="M"}" onclick="pick='M';home()">Quick</button></div>
+   ${pick==="M"?"":`<div class="where" role="group" aria-label="Where are you training?">${["gym","home"].map(w=>`<button aria-pressed="${where===w}" onclick="where='${w}';store.set('where','${w}');home()">${w==="gym"?"At the gym":"At home"}</button>`).join("")}</div>`}
    <section class="poster tone-banana" aria-label="Today's workout">
      <div class="stage"><canvas id="demo" data-anim="${ANIM_BY_NAME[work[0].name]}" aria-hidden="true"></canvas></div>
      <div class="poster-txt"><p class="kicker">${kicker}</p><h2>${titleLines}</h2>
-       <div class="metarow"><div><b>${DAY_META[pick].mins} min</b><span>Duration</span></div>
+       <div class="metarow"><div><b>${mins} min</b><span>Duration</span></div>
          <div><b>${pick==="M"?"3":work.length}</b><span>${pick==="M"?"Rounds":"Exercises"}</span></div>
-         <div><b>${{A:"Dumbbells",B:"Bar + DBs",M:"Bar + DB",G1:"Machines",G2:"Machines"}[pick]}</b><span>Equipment</span></div></div></div>
+         <div><b>${pick==="M"?"Bar + DB":where==="gym"?"Gym":"DBs + bar"}</b><span>Equipment</span></div></div></div>
    </section>
+   ${habitsCard()}
    ${runCard()}
    ${weighCard()}
-   <div class="section"><div class="sechead"><h3>In this session</h3><span class="muted small">About ${DAY_META[pick].mins} min</span></div>
+   <div class="section"><div class="sechead"><h3>In this session</h3><span class="muted small">About ${mins} min</span></div>
      ${grp("Warm-up", steps.filter(s=>s.kind==="warm"))}
      <p class="grp">${pick==="M"?"Circuit, 3 rounds":"Workout"}</p>${work.map(row).join("")}
      ${grp("Cool-down", steps.filter(s=>s.kind==="cool"))}</div>
+   ${planGuide()}
    ${historyBlock()}
-   <div class="dock"><div class="dock-in"><button class="btn primary" onclick="start()">Start ${pick==="M"?"quick circuit":DAY_META[pick].label}</button></div></div>`);
+   <div class="dock"><div class="dock-in"><button class="btn primary" onclick="start()">Start ${pick==="M"?"quick circuit":PLAN[pick].title}</button></div></div>`);
   paintThumbs();
   const chipRow=document.querySelector(".chips"), on=chipRow&&chipRow.querySelector('[aria-pressed="true"]');   // keep the chosen chip in view
   if(on && on.offsetLeft+on.offsetWidth > chipRow.clientWidth) chipRow.scrollLeft = on.offsetLeft + on.offsetWidth - chipRow.clientWidth + 16;
@@ -1048,7 +1219,7 @@ function home(){
 
 /* ---------- session ---------- */
 function start(){
-  S = {day:pick, prev:{}, disp:{}, lb:null, steps:buildSteps(pick), i:0, set:1, phase:"work", left:0, total:0, running:false, logs:{}, t:null, reps:0, t0:Date.now()};
+  S = {day:curId(), prev:{}, disp:{}, lb:null, steps:buildSteps(curId()), i:0, set:1, phase:"work", left:0, total:0, running:false, logs:{}, t:null, reps:0, t0:Date.now()};
   try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
   if(navigator.wakeLock){ navigator.wakeLock.request("screen").then(w=>wakeLock=w).catch(()=>{}); }
   scrollTo(0,0); enter();
@@ -1204,6 +1375,10 @@ function draw(){
       return `<div class="sr ${st}"><span class="n">${k+1}</span><span class="pv">${esc(String(prevOf(k)))}</span><span class="rp">${rp}</span><span class="ck">${st==="done"?ck:""}</span></div>`; }).join("");
     metric = `<div class="sets" aria-label="Sets"><div class="sh"><span>Set</span><span>Previous</span><span>Reps</span><span></span></div>${rows}</div>`;
     if(s.weighted) metric = weightCompact(s) + metric;
+    else if(S.set===1 && HARDER[s.name] && Array.isArray(pvb)){
+      const top=+((String(s.target).match(/(\d+)\D*$/)||[])[1]||0), done=pvb.filter(x=>x!=null&&x!=="");
+      if(top && done.length>=totN && done.every(x=>+x>=top)) metric = `<p class="small tip">You hit ${top}+ on every set last time. ${HARDER[s.name]}</p>` + metric;
+    }
     dock = `<button class="btn primary" onclick="finishSet()">Log set ${S.set}</button>`;
   } else {
     metric = `<div class="metric">
@@ -1275,7 +1450,7 @@ function finish(){
   }
   Object.entries(S.logs).forEach(([k,v])=>store.set("log:"+k, v));
   const date = new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
-  const lastMap = {A:"A", B:"B", G1:"A", G2:"B"}; if(lastMap[S.day]) store.set("lastDay", lastMap[S.day]);
+  if(ORDER.includes(S.day.slice(0,2))) store.set("lastDay", S.day.slice(0,2));
   store.set("lastDone", {day: S.day==="M"?"Minimum":S.day, date});
   const dates = new Set(store.get("doneDates")||[]); dates.add(isoDay(new Date())); store.set("doneDates", [...dates].slice(-60));
   const mins = Math.max(1, Math.round((Date.now()-S.t0)/60000));
@@ -1296,8 +1471,8 @@ function finish(){
   const nEx = Object.keys(S.logs).length || new Set(S.steps.filter(x=>x.kind==="work"&&!x.isRest).map(x=>x.logKey||x.name)).size;
   pick = suggested();
   $(`
-   <div class="done-hero"><div class="done-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p class="eyebrow">Workout complete</p><h1>${esc((DAY[S.day]||{}).title||"Workout")}</h1>
-     <p class="muted">${newPB.size ? `${newPB.size} personal record${newPB.size>1?"s":""}. ` : ""}${S.day==="M" ? "Short sessions still count toward your week." : `Next: ${esc(DAY[pick].title.toLowerCase())}.`}</p></div>
+   <div class="done-hero"><div class="done-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p class="eyebrow">Workout complete</p><h1>${esc(dayTitle(S.day))}</h1>
+     <p class="muted">${newPB.size ? `${newPB.size} personal record${newPB.size>1?"s":""}. ` : ""}${S.day==="M" ? "Short sessions still count toward your week." : `Next time: ${esc(PLAN[pick].title)}, ${esc(PLAN[pick].focus.toLowerCase())}.`}</p></div>
    ${weekStrip()}
    ${goalLine()}
    <div class="stats">
