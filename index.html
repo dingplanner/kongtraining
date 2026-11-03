@@ -1120,7 +1120,7 @@ function proteinRange(){
 function habitList(){ const pr=proteinRange(); return [
   {k:"protein", t:pr.txt, s:pr.sub},
   {k:"steps", t:"8,000+ steps", s:"Walking to school and around counts"},
-  {k:"sleep", t:"8–10 hours of sleep", s:"Short sleep while losing fat costs muscle"},
+  {k:"sleep", t:[5,6].includes(new Date().getDay())?"8–9 hours of sleep tonight":"Lights out on time, 7½ h+", s:[5,6].includes(new Date().getDay())?"Weekend: catch up, but wake within 2 hours of your school time":"Phone away 30 min before bed. No caffeine after school"},
   {k:"drinks", t:"Water, no sugary drinks", s:"Soda and energy drinks are easy calories to cut"},
   {k:"plants", t:"Fruit or veg at 2+ meals", s:"Keeps you full on fewer calories"}]; }
 function toggleHabit(k){ const key="habits:"+isoDay(new Date()), d=new Set(store.get(key)||[]); d.has(k)?d.delete(k):d.add(k); store.set(key,[...d]); home(); }
@@ -1156,7 +1156,8 @@ function planGuide(){
   ${sec("The truth about a sharp jawline",`<p><b>It comes from lower body fat overall.</b> You can't burn fat from one spot, so the face leans out as the rest of you does. Your jaw and face also keep maturing into your early twenties.</p>
     <p><b>Skip mewing and jaw trainers.</b> There's no good evidence mewing changes adult bone, and jaw exercisers or very hard gum can strain your jaw joint.</p>
     <p><b>What actually helps:</b> steady fat loss; good posture (face pulls and rows train the upper back, and a forward head softens the jaw angle); less salty food, sugary drinks and late-night junk, which make the face puffy; and enough sleep.</p>`)}
-  ${sec("Sleep, steps, supplements",`<p><b>8–10 hours of sleep</b> is what teens need. In studies, people on a diet who slept 5.5 hours lost more muscle and less fat than those who slept 8.5.</p>
+  ${sec("Sleep, steps, supplements",`<p><b>Teens need 8–10 hours.</b> On school nights, get as close to 8 as you can: lights out 20 minutes earlier, phone across the room, screens off 30 minutes before bed, no caffeine after school. On weekends sleep 8–9 hours, but wake within 2 hours of your school time. A 20-minute nap after school, before 5 pm, also helps.</p>
+    <p>Why it matters: in studies, people on a diet who slept 5.5 hours lost more muscle and less fat than those who slept 8.5, and short sleep makes you hungrier. After a really short night (under 6½ hours), still train, but don't chase new records.</p>
     <p><b>8,000+ steps a day</b> burns more over a week than most cardio sessions, and doesn't tire your legs for lifting.</p>
     <p><b>No supplements needed.</b> Skip fat burners, testosterone boosters and pre-workouts. Creatine is well studied in adults; wait until you're 18 and ask a doctor. Food first, protein powder only if meals fall short.</p>`)}
   ${sec("Checking progress",`<p>Weigh in once a week, same morning routine. Every 2 weeks, take a photo in the same light and measure your waist at the belly button.</p>
