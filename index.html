@@ -185,6 +185,7 @@ details.grpd .row canvas{background:var(--surface-2)}
 .ringwrap .num{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:2px}
 .big{font-family:var(--display);font-weight:700;font-size:3.25rem;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.045em}
 .big.long{font-size:2.6rem}
+.huge.dur{font-size:2.5rem;letter-spacing:-.04em}
 .huge{font-family:var(--display);font-weight:700;font-size:3.5rem;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.05em}
 .unit{font-family:var(--sans);font-size:.8125rem;color:var(--muted);font-weight:500;letter-spacing:0}
 .setcol{display:flex;flex-direction:column;gap:6px}
@@ -198,8 +199,6 @@ details.grpd .row canvas{background:var(--surface-2)}
 .dots i.on{background:var(--phase)}
 .lastline{font-size:.8125rem;color:var(--muted);text-align:center;margin-top:6px}
 .lastline b{color:var(--ink);font-weight:600}
-.radj{display:flex;gap:8px}
-.radj button{min-width:64px;min-height:44px;border-radius:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-weight:600;font-size:.875rem;cursor:pointer;font-variant-numeric:tabular-nums}
 
 /* gym / home switch */
 .where{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;margin-top:-8px}
@@ -997,7 +996,7 @@ function workSteps(id){
   return out;
 }
 function buildSteps(id){
-  if(id==="M") return [...[WARM[0],WARM[1],WARM[2]].map(x=>({...x, kind:"warm"})), ...circuitSteps(), ...COOL_ALL.slice(0,3).map(x=>({...x, kind:"cool"}))];
+  if(id==="M") return [...[WARM[0],WARM[1],WARM[2]].map(x=>({...x, kind:"warm"})), ...circuitSteps().filter(x=>!x.isRest), ...COOL_ALL.slice(0,3).map(x=>({...x, kind:"cool"}))];
   const gym=isGym(id), upper=id[0]==="U", pulls=/^U/.test(id) && !gym;
   const warm = [
     ...(gym ? [{name:"Incline walk", secs:180, cue:"3 minutes, brisk, at an incline. Then do one light warm-up set of your first exercise before the real sets."}] : []),
@@ -1006,7 +1005,7 @@ function buildSteps(id){
   const cool = [
     ...(gym ? [{name:"Incline walk", secs:480, cue:"Optional: 8 minutes at a brisk pace burns extra calories without hurting recovery. Skip it if you're short on time."}] : []),
     ...(upper ? [COOL_A, COOL_B, COOL_ALL[3]] : COOL_ALL)];
-  return [...warm.map(x=>({...x, kind:"warm"})), ...workSteps(id), ...cool.map(x=>({...x, kind:"cool"}))];
+  return [...warm.map(x=>({...x, kind:"warm"})), ...workSteps(id).filter(x=>!x.isRest), ...cool.map(x=>({...x, kind:"cool"}))];
 }
 
 const $ = h => {document.getElementById("app").innerHTML = h;};
@@ -1415,10 +1414,13 @@ function defaultReps(s){
   if(prev && prev.filter(Boolean).length) return +prev.filter(Boolean).slice(-1)[0];
   const m = String(s.target||"").match(/\d+/); return m ? +m[0] : 10;
 }
+/* Timers only run for runs, where they cue each walk/jog change. Workouts are logged by hand: no countdowns, no rest timer. */
+const timed = () => S.day==="R";
+const durTxt = secs => secs>=60 ? (secs%60 ? `${Math.floor(secs/60)}:${String(secs%60).padStart(2,"0")} min` : `${secs/60} min`) : `${secs} sec`;
 function enter(){
   const s = cur(); S.set = 1; S.phase = "work"; stopTimer();
   S.left = S.total = s.secs || s.timed || 0; S.reps = defaultReps(s); S.lb = defaultLb(s);
-  if(s.secs) runTimer();
+  if(s.secs && timed()) runTimer();
   draw(); scrollTo(0,0);
 }
 function buzz(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
@@ -1448,7 +1450,6 @@ function toggle(){ S.running ? stopTimer() : runTimer(); draw(); }
 function timerDone(){
   const s = cur();
   if(s.secs){ next(); return; }
-  if(S.phase==="rest"){ S.set++; S.phase="work"; S.left = S.total = s.timed||0; S.reps = defaultReps(s); S.lb = defaultLb(s); draw(); return; }
   if(s.timed){ finishSet(); }
 }
 function bump(d){ S.reps = Math.max(0, S.reps + d); for(const id of ["repsOut","repsRow"]){ const o=document.getElementById(id); if(o) o.textContent = S.reps; } }
@@ -1461,12 +1462,10 @@ function finishSet(){
   }
   if(!s.timed && !s.noLog){ const key = s.logKey||s.name; (S.logs[key] = S.logs[key]||[])[s.logIdx ?? S.set-1] = String(S.reps); }
   if(S.set >= s.sets){ next(); return; }
-  S.phase = "rest"; S.left = S.total = s.rest || 60; runTimer(); draw();
+  S.set++; S.phase = "work"; S.reps = defaultReps(s); S.lb = defaultLb(s); draw();
 }
 function next(){ if(S.i < S.steps.length-1){ S.i++; enter(); } else finish(); }
 function back(){ if(S.i>0){ S.i--; enter(); } }
-function adjRest(d){ S.left=Math.max(1,S.left+d); S.total=Math.max(S.total,S.left); tick(); const c=document.getElementById("clock"); if(c) c.className="big"+(S.left>=60?" long":""); }
-function skipRest(){ stopTimer(); S.set++; S.phase="work"; S.left = S.total = cur().timed||0; S.reps = defaultReps(cur()); S.lb = defaultLb(cur()); draw(); }
 
 function dots(done, n){ if(!n||n>8) return ""; return `<div class="dots" aria-hidden="true">${Array.from({length:n},(_,k)=>`<i class="${k<done?"on":""}"></i>`).join("")}</div>`; }
 function lastReps(s){ const pv=store.get("log:"+(s.logKey||s.name)); if(!Array.isArray(pv)) return null; const v=pv[s.logIdx ?? S.set-1]; return v!=null&&v!==""&&!isNaN(+v) ? +v : null; }
@@ -1487,23 +1486,19 @@ function draw(){
   const kinds = {warm:"Warm-up", work:"Workout", cool:"Cool-down", run:"Run"};
   const inKind = S.steps.filter(x=>x.kind===s.kind), pos = inKind.indexOf(s)+1;
   let metric = "", dock = "";
-  if(s.secs){
+  if(s.secs && !timed()){
+    metric = `<div class="metric"><div class="setcol"><span class="unit">${s.kind==="cool"?"Hold for about":"Do it for about"}</span><span class="huge dur">${durTxt(s.secs)}</span></div>
+       <div class="side"><p class="muted small">${s.kind==="cool"?"Hold the stretch and breathe slowly.":"Easy pace. Just get warm."}</p></div></div>`;
+    dock = `<button class="btn primary" onclick="next()">${S.i < S.steps.length-1 ? "Next" : "Finish"}</button>`;
+  } else if(s.secs){
     metric = `<div class="metric">${ring(S.total>=60?"left":"seconds", s.kind!=="cool")}
        <div class="side"><p class="muted small">${s.kind==="cool"?"Hold the stretch and breathe slowly.":s.kind==="run"?esc(S.runTitle)+", "+S.runMins+" min total. Your phone beeps at each change.":"Easy pace. Just get warm."}</p></div></div>`;
     dock = `<div class="dock-row"><button class="btn" onclick="toggle()">${S.running?"Pause":"Resume"}</button>
        <button class="btn primary" onclick="next()">Next</button></div>`;
-  } else if(S.phase==="rest"){
-    metric = `<div class="metric">${ring("rest", false)}
-       <div class="side"><span class="unit">Up next</span><span class="huge">${S.set+1}<span class="unit"> / ${s.sets}</span></span><span class="unit">${unit}</span>
-         <div class="radj"><button onclick="adjRest(-15)" aria-label="15 seconds less rest">−15s</button><button onclick="adjRest(15)" aria-label="15 seconds more rest">+15s</button></div></div></div>`;
-    dock = `<div class="dock-row"><button class="btn" onclick="toggle()">${S.running?"Pause":"Resume"}</button>
-       <button class="btn primary" onclick="skipRest()">Skip rest</button></div>`;
   } else if(s.timed){
-    metric = `<div class="metric">${ring("seconds", true)}
-       <div class="side"><span class="unit">${unit[0].toUpperCase()+unit.slice(1)}</span><span class="huge">${curN}<span class="unit"> / ${totN}</span></span></div></div>`;
-    dock = S.running
-      ? `<div class="dock-row"><button class="btn" onclick="stopTimer();finishSet()">Done early</button><button class="btn primary" onclick="toggle()">Pause</button></div>`
-      : `<button class="btn primary" onclick="toggle()">Start ${S.total} sec</button>`;
+    metric = `<div class="metric"><div class="setcol"><span class="unit">${unit[0].toUpperCase()+unit.slice(1)}</span><span class="huge">${curN}<span class="unit"> / ${totN}</span></span>${dots(curN-1,totN)}</div>
+       <div class="side"><span class="unit">Hold for</span><span class="huge dur">${durTxt(s.timed)}</span></div></div>`;
+    dock = `<button class="btn primary" onclick="finishSet()">${totN>1?`Log ${unit} ${curN}`:"Done"}</button>`;
   } else if(!s.noLog && s.logIdx==null && totN>=2 && totN<=8){
     const key=s.logKey||s.name, pv=s.weighted?prevRec(s):null, pvb=store.get("log:"+key);
     const prevOf=k=> s.weighted ? (pv&&Array.isArray(pv.sets)&&pv.sets[k] ? fmtSet(pv.sets[k]).replace("×"," × ") : "—") : (Array.isArray(pvb)&&pvb[k]!=null&&pvb[k]!=="" ? pvb[k] : "—");
