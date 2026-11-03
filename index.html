@@ -1051,10 +1051,10 @@ function weighCard(){
     note=!last?"Log your first weigh-in to start tracking.":due?"Check in today to see your weekly trend.":`Check in again on ${nd.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} to see your weekly trend.`;
   } else {
     const r=Math.abs(rate).toFixed(1);
-    if(rate<=-1.1){ pill=`<span class="pill warn">Too fast</span>`; note=`Losing ${r} lb a week. While you're still growing, more than about 1 lb a week costs muscle and energy. Eat a bit more, especially protein and carbs around training.`; }
-    else if(rate<=-0.25){ pill=`<span class="pill good">On track</span>`; note=`Losing ${r} lb a week. A steady pace that keeps your muscle while the fat comes off.`; }
-    else if(rate<0.3){ pill=`<span class="pill">Holding steady</span>`; note=`About the same weight. That's fine if your lifts are going up and your waist is getting smaller: you're building muscle and losing fat. If nothing changes in 3 weeks, cut sugary drinks and snacks first.`; }
-    else { pill=`<span class="pill up">Going up</span>`; note=`Up ${r} lb a week. Some gain is normal while you're growing and building muscle. If your waist is growing too, cut back on snacks, sugary drinks and late-night eating.`; }
+    if(rate<=-0.6){ pill=`<span class="pill warn">Too fast</span>`; note=`Losing ${r} lb a week. While you're still growing, aim for half a pound a week at most, so your body has what it needs to grow. Eat a bit more, especially protein and carbs around training.`; }
+    else if(rate<=-0.15){ pill=`<span class="pill good">On track</span>`; note=`Losing ${r} lb a week. A slow, safe pace: the fat comes off while you keep growing and building muscle.`; }
+    else if(rate<0.5){ pill=`<span class="pill good">Holding steady</span>`; note=`About the same weight. That's a good place to be while you're growing: if your lifts go up and your waist gets smaller, you're swapping fat for muscle.`; }
+    else { pill=`<span class="pill up">Going up</span>`; note=`Up ${r} lb a week. Some gain is normal while you're growing taller and building muscle. Only cut back on snacks and sugary drinks if your waist is growing too.`; }
   }
   const change = last && w.length>1 ? Math.round((last.lb-first.lb)*10)/10 : null;
   const form = `<div class="wform">
@@ -1149,7 +1149,7 @@ function planGuide(){
     <p><b>Double progression.</b> Each exercise has a rep range like 8–12. Use the same weight until you hit the top on every set, then add 5 lb next time and start at the bottom of the range again. The app tracks this and tells you when.</p>
     <p>Bodyweight moves get harder instead of heavier: feet on a chair for push-ups, slow 3-second lowerings for pull-ups.</p>
     <p>Form beats weight. If a rep looks ugly, the set is over. Watch the form video the first time you do anything new.</p>`)}
-  ${sec("Eating to get lean",`<p>You're still growing, so <b>no crash diets.</b> Lose no more than about 1 lb a week, or simply hold your weight while getting stronger. As a beginner you can build muscle and lose fat at the same time.</p>
+  ${sec("Eating to get lean",`<p>You're still growing, so <b>no crash diets.</b> Hold your weight steady or lose slowly, half a pound a week at most, while you get stronger. Eating enough matters for reaching your full height. As a beginner you can build muscle and lose fat at the same time.</p>
     <p><b>${esc(pr.amount)} of protein a day</b>, spread over 3–4 meals. Easy sources: eggs, Greek yogurt, milk, chicken, tuna, lean beef, beans, tofu.</p>
     <p>Build each plate from protein, vegetables or fruit, and some carbs (rice, potatoes, bread, oats), with more carbs around training. Cut sugary drinks, energy drinks and most fast food first. Don't skip meals.</p>
     <p>If you're always tired, cold, dizzy, or your lifts keep dropping, you're eating too little. Eat more and talk to a parent or doctor.</p>`)}
@@ -1160,6 +1160,11 @@ function planGuide(){
     <p>Why it matters: in studies, people on a diet who slept 5.5 hours lost more muscle and less fat than those who slept 8.5, and short sleep makes you hungrier. After a really short night (under 6½ hours), still train, but don't chase new records.</p>
     <p><b>8,000+ steps a day</b> burns more over a week than most cardio sessions, and doesn't tire your legs for lifting.</p>
     <p><b>No supplements needed.</b> Skip fat burners, testosterone boosters and pre-workouts. Creatine is well studied in adults; wait until you're 18 and ask a doctor. Food first, protein powder only if meals fall short.</p>`)}
+  ${sec("Growing taller",`<p><b>Height is mostly set by your genes and your growth plates.</b> Most boys finish growing between 16 and 18, and some a little later. Still growing if you grew in the last year or your shoe size keeps changing. A doctor can check with a quick hand X-ray (bone age).</p>
+    <p>Rough estimate of your adult height: add your parents' heights, plus 5 inches, divide by 2. Most boys land within about 2 inches of that.</p>
+    <p><b>What helps you reach it:</b> eating enough (no hard dieting), 8 hours of sleep (growth hormone is released in deep sleep), calcium and vitamin D from milk, yogurt, cheese and some sun, and no nicotine, vaping or alcohol.</p>
+    <p><b>Myths:</b> lifting with good form doesn't stunt growth. Hanging, stretching and "height supplements" don't make you permanently taller.</p>
+    <p><b>Stand tall now:</b> slouching hides up to about an inch. Rows, face pulls and planks build the posture that shows your full height and sharpens your jawline.</p>`)}
   ${sec("Checking progress",`<p>Weigh in once a week, same morning routine. Every 2 weeks, take a photo in the same light and measure your waist at the belly button.</p>
     <p>If your weight holds steady but your waist shrinks and your lifts go up, it's working: you're swapping fat for muscle.</p>
     <p>Sharp joint pain means stop that exercise. Normal muscle soreness is fine. Feeling run down for a week? Take 2 easy days.</p>`)}
