@@ -2,7 +2,7 @@
    Serves the app's own files from the cache so it opens with no signal, and quietly
    refreshes them in the background, so an update shows up on the next open.
    It only ever touches this site's own files; nothing is sent anywhere. */
-const CACHE = "kong-v1";
+const CACHE = "kong-v2";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
