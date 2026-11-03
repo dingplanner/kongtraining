@@ -26,8 +26,8 @@
   --accent:#d6ff3e; --accent-ink:#0a0a0b; --accent-soft:rgba(214,255,62,.12);
   --warm:#ffb547; --cool:#7cc4ff; --run:#5fd7a6; --danger:#ff7a6b;
   --phase:var(--accent);
-  --fig-hi:#f2f2f4; --fig-lo:#8f8f97; --far-hi:#6d6d75; --far-lo:#3a3a40;
-  --metal-hi:#5d5d64; --metal-lo:#2b2b30; --prop:#34343a; --floor:rgba(255,255,255,.14); --shadow:rgba(0,0,0,.55);
+  --fig-hi:#fbfbfc; --fig-mid:#c7c7cd; --fig-lo:#6e6e77; --far-hi:#7a7a82; --far-mid:#55555c; --far-lo:#2f2f35;
+  --metal-hi:#6a6a72; --metal-lo:#2b2b30; --prop:#2a2a2f; --prop-hi:#3d3d44; --floor:rgba(255,255,255,.12); --shadow:rgba(0,0,0,.55);
   --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --gx:max(16px,env(safe-area-inset-left,0px)); --gxr:max(16px,env(safe-area-inset-right,0px));
@@ -308,109 +308,6 @@ details.grpd .row canvas{background:var(--surface-2)}
 /* ================= Animated demo figures =================
    Side view. Floor at y=180, logical canvas 300 x 215 (shifted down 25 so a bar fits at y=-7).
    Pose points: h head, s shoulder, p hip, e/w near elbow/hand, k/f near knee/foot; e2,w2,k2,f2 = far limbs. */
-const ext = (b,o)=>({...b,...o});
-const ST = {h:[150,34],s:[150,50],p:[150,100],e:[150,75],w:[150,100],k:[150,140],f:[150,180]};
-const SQ = {h:[160,80],s:[152,95],p:[128,140],e:[172,95],w:[196,95],k:[172,150],f:[150,180]};
-const HANG = {h:[157,31],s:[150,43],e:[150,19],w:[150,-5],p:[150,93],k:[156,131],f:[148,166]};
-const PU_UP = {h:[205,122],s:[190,130],e:[190,155],w:[190,180],p:[125,154],k:[92,166],f:[60,178]};
-const PU_DN = {h:[208,157],s:[192,163],e:[172,170],w:[190,180],p:[126,170],k:[93,174],f:[60,178]};
-const PK = {h:[205,150],s:[190,155],e:[190,180],w:[215,180],p:[125,165],k:[93,172],f:[60,178]};
-const CP = {h:[180,166],s:[165,160],p:[115,158],e:[195,172],w:[225,176],k:[150,178],f:[105,178]};
-const HF = {h:[142,72],s:[142,88],p:[140,136],e:[152,112],w:[146,134],k:[180,142],f:[184,180],k2:[115,178],f2:[78,180]};
-const QS = {h:[150,34],s:[150,50],p:[150,100],e:[138,82],w:[130,114],k:[148,140],f:[128,116],k2:[150,140],f2:[150,180],e2:[172,66],w2:[196,72]};
-const RW = {h:[200,94],s:[185,100],p:[130,100],e:[182,125],w:[182,150],k:[124,140],f:[120,180],e2:[190,120],w2:[195,140],k2:[130,140],f2:[95,140]};
-const bothArms = (pose, e, w) => ext(pose,{e, w, e2:[e[0]-4,e[1]], w2:[w[0]-4,w[1]]});
-
-function gait(t, A, bend, lean, arm, fore){
-  const ph=2*Math.PI*t, bob=-3*Math.abs(Math.sin(ph))*(A>.4?1:.3);
-  const p=[150,100+bob], s=[150+lean,50+bob], h=[152+lean*1.2,34+bob];
-  const leg=q=>{ const th=A*Math.sin(q), kb=bend*Math.max(0,Math.cos(q))+.1;
-    const k=[p[0]+40*Math.sin(th), p[1]+40*Math.cos(th)], sa=th-kb;
-    return [k,[k[0]+40*Math.sin(sa), Math.min(180,k[1]+40*Math.cos(sa))]]; };
-  const armQ=q=>{ const a=-arm*Math.sin(q), e=[s[0]+24*Math.sin(a), s[1]+24*Math.cos(a)], fa=a+fore;
-    return [e,[e[0]+22*Math.sin(fa), e[1]+22*Math.cos(fa)]]; };
-  const [k,f]=leg(ph), [k2,f2]=leg(ph+Math.PI), [e,w]=armQ(ph), [e2,w2]=armQ(ph+Math.PI);
-  return {h,s,p,k,f,k2,f2,e,w,e2,w2};
-}
-const ANIM = {
-  armCircles:{ms:1600, fn:t=>{const a=t*Math.PI*2-Math.PI/2, c=Math.cos(a), s=Math.sin(a);
-     const e=[150+24*c,50+24*s], w=[150+48*c,50+48*s]; return ext(ST,{e,w,e2:e,w2:w});}},
-  legSwing:{ms:1500, props:{wall:100}, fn:t=>{const a=Math.sin(t*Math.PI*2)*0.75;
-     return ext(ST,{k:[150+40*Math.sin(a),100+40*Math.cos(a)], f:[150+80*Math.sin(a),100+80*Math.cos(a)],
-       k2:[146,140], f2:[146,180], e:[127,66], w:[104,72], e2:[150,75], w2:[150,100]});}},
-  squat:{ms:1100, keys:[ST,SQ]},
-  lunge:{ms:1100, keys:[ext(ST,{e:[160,72],w:[172,62],e2:[140,72],w2:[130,62]}),
-     {h:[150,70],s:[150,86],p:[148,135],e:[172,100],w:[192,94],k:[188,140],f:[190,180],k2:[126,174],f2:[96,176],e2:[130,100],w2:[112,94]}]},
-  deadHang:{ms:1400, props:{bar:1}, keys:[HANG, ext(HANG,{h:[157,26],s:[150,38],e:[150,16],p:[150,88],k:[156,126],f:[148,161]})]},
-  pushup:{ms:1000, keys:[PU_UP,PU_DN]},
-  goblet:{ms:1300, props:{db:"both"}, keys:[bothArms(ST,[158,80],[162,64]), bothArms(SQ,[162,125],[168,108])]},
-  press:{ms:1000, props:{db:"both"}, keys:[bothArms(ST,[166,70],[162,48]), bothArms(ST,[152,25],[152,0])]},
-  bulgarian:{ms:1200, props:{db:"both", chair:[55,100,140]}, keys:[
-     {h:[150,40],s:[150,55],p:[150,105],e:[150,80],w:[150,105],k:[176,142],f:[180,180],k2:[125,138],f2:[95,140]},
-     {h:[157,77],s:[155,92],p:[150,140],e:[155,117],w:[155,142],k:[190,142],f:[180,180],k2:[130,172],f2:[95,140]}]},
-  burpee:{ms:650, keys:[ST,
-     {h:[195,115],s:[180,125],p:[140,150],e:[190,155],w:[195,180],k:[175,150],f:[150,180]},
-     {h:[208,122],s:[195,130],e:[195,155],w:[195,180],p:[130,155],k:[97,167],f:[65,178]},
-     {h:[195,115],s:[180,125],p:[140,150],e:[190,155],w:[195,180],k:[175,150],f:[150,180]},
-     ST,
-     {h:[150,16],s:[150,32],p:[150,82],e:[150,8],w:[150,-16],k:[152,122],f:[150,160]}]},
-  pullup:{ms:1300, props:{bar:1}, keys:[HANG, {h:[154,-18],s:[150,0],e:[170,10],w:[150,-5],p:[150,50],k:[156,88],f:[148,123]}]},
-  row:{ms:1100, props:{db:"near", chair:[90,205,140]}, keys:[RW, ext(RW,{e:[160,86],w:[178,110]})]},
-  rdl:{ms:1300, props:{db:"both"}, keys:[ST, {h:[178,72],s:[165,80],p:[125,110],e:[166,105],w:[166,130],k:[145,145],f:[150,180]}]},
-  kneeRaise:{ms:1200, props:{bar:1}, keys:[HANG, ext(HANG,{p:[150,92],k:[185,84],f:[178,121],k2:[181,84],f2:[174,121]})]},
-  plank:{ms:1800, keys:[PK, ext(PK,{p:[125,162],h:[205,149]})]},
-  chest:{ms:1600, props:{door:140}, keys:[
-     ext(ST,{e:[140,52],w:[140,28],e2:[150,75],w2:[150,100]}),
-     {h:[172,38],s:[162,52],p:[152,100],e:[140,52],w:[140,28],k:[166,140],f:[176,180],k2:[148,140],f2:[146,180],e2:[164,77],w2:[166,102]}]},
-  lat:{ms:1600, props:{door:215}, keys:[
-     {h:[165,36],s:[160,52],p:[150,100],e:[186,72],w:[212,92],k:[150,140],f:[150,180]},
-     {h:[181,102],s:[165,100],p:[118,108],e:[188,96],w:[212,92],k:[135,142],f:[150,180]}]},
-  hamstring:{ms:1700, keys:[
-     {h:[127,110],s:[125,125],p:[120,175],e:[142,150],w:[158,170],k:[160,176],f:[200,176]},
-     {h:[175,138],s:[160,146],p:[120,175],e:[180,160],w:[198,170],k:[160,176],f:[200,176]}]},
-  hipFlexor:{ms:1700, keys:[HF, ext(HF,{p:[154,142],s:[152,92],h:[152,76],e:[162,116],w:[156,138],k2:[118,178]})]},
-  quad:{ms:1700, props:{wall:200}, keys:[QS, ext(QS,{f:[132,107],w:[133,106],e:[140,80]})]},
-  child:{ms:2000, keys:[CP, ext(CP,{p:[115,153],s:[165,157],h:[180,163]})]},
-  lateral:{ms:1200, props:{db:"both"}, keys:[
-     {h:[150,34],s:[150,50],p:[150,100],e:[160,74],w:[164,98],k:[156,140],f:[160,180],e2:[140,74],w2:[136,98],k2:[144,140],f2:[140,180]},
-     {h:[150,34],s:[150,50],p:[150,100],e:[175,48],w:[200,52],k:[156,140],f:[160,180],e2:[125,48],w2:[100,52],k2:[144,140],f2:[140,180]}]},
-  climber:{ms:420, keys:[
-     ext(PU_UP,{k:[160,160],f:[138,178],k2:[92,166],f2:[60,178]}),
-     ext(PU_UP,{k:[92,166],f:[60,178],k2:[160,160],f2:[138,178]})]},
-  rest:{ms:2400, keys:[ST, ext(ST,{s:[150,48],h:[150,32],e:[151,74],w:[151,99]})]},
-  run:{ms:700, fn:t=>gait(t,.55,1.3,6,.7,1.4)},
-  sprint:{ms:480, fn:t=>gait(t,.72,1.7,10,.9,1.5)},
-  walk:{ms:1100, fn:t=>gait(t,.33,.45,2,.4,.35)},
-  legPress:{ms:1400, props:{lines:[[55,92,128,150,9]], plate:1}, keys:[
-     {p:[120,140], s:[85,108], h:[72,94], e:[100,135], w:[118,150], k:[132,101], f:[168,116]},
-     {p:[120,140], s:[85,108], h:[72,94], e:[100,135], w:[118,150], k:[156,120], f:[189,101]}]},
-  legExt:{ms:1300, props:{chair:[110,175,138]}, keys:[
-     {p:[140,130], s:[132,82], h:[131,66], e:[140,106], w:[150,128], k:[180,132], f:[182,172]},
-     {p:[140,130], s:[132,82], h:[131,66], e:[140,106], w:[150,128], k:[180,132], f:[219,124]}]},
-  legCurl:{ms:1300, props:{chair:[55,215,152]}, keys:[
-     {h:[72,132], s:[88,138], p:[132,142], e:[75,150], w:[62,148], k:[172,143], f:[211,145]},
-     {h:[72,132], s:[88,138], p:[132,142], e:[75,150], w:[62,148], k:[172,143], f:[180,104]}]},
-  calf:{ms:1100, props:{db:"both"}, keys:[
-     bothArms(ST,[150,75],[150,100]),
-     {h:[150,26],s:[150,42],p:[150,92],e:[150,67],w:[150,92],k:[151,134],f:[156,180],e2:[146,67],w2:[146,92],k2:[147,134],f2:[152,180]}]},
-  lungeWalk:{ms:1200, props:{db:"both"}, keys:[
-     {h:[150,34],s:[150,50],p:[150,100],e:[150,75],w:[150,100],k:[160,140],f:[165,180],k2:[140,140],f2:[135,180]},
-     {h:[150,70],s:[150,86],p:[148,135],e:[150,110],w:[150,135],k:[188,140],f:[190,180],k2:[126,174],f2:[96,176]}]},
-  cableCrunch:{ms:1400, props:{cable:[150,-25]}, keys:[
-     {p:[150,138], k:[165,178], f:[122,180], s:[150,90], h:[150,74], e:[166,84], w:[158,72]},
-     {p:[150,138], k:[165,178], f:[122,180], s:[192,112], h:[206,124], e:[190,100], w:[200,112]}]},
-  dip:{ms:1300, props:{lines:[[126,108,180,108,6],[132,110,132,183,5]]}, keys:[
-     {s:[152,60], h:[156,44], e:[152,84], w:[152,108], p:[150,110], k:[146,150], f:[122,160]},
-     {s:[152,86], h:[157,70], e:[128,96], w:[152,108], p:[150,136], k:[146,175], f:[122,178]}]},
-  curl:{ms:1200, props:{db:"both"}, keys:[ bothArms(ST,[152,76],[154,101]), bothArms(ST,[152,76],[172,58]) ]},
-  pushdown:{ms:1200, props:{cable:[192,-28]}, keys:[
-     {h:[156,35],s:[153,51],p:[148,100],k:[150,140],f:[150,180],e:[164,76],w:[182,62]},
-     {h:[156,35],s:[153,51],p:[148,100],k:[150,140],f:[150,180],e:[164,76],w:[170,102]}]},
-  overheadExt:{ms:1300, props:{cable:[95,176]}, keys:[
-     {h:[160,36],s:[155,52],p:[148,100],k:[160,140],f:[168,180],k2:[132,140],f2:[122,180],e:[170,22],w:[150,28]},
-     {h:[160,36],s:[155,52],p:[148,100],k:[160,140],f:[168,180],k2:[132,140],f2:[122,180],e:[170,22],w:[192,2]}]},
-  circuit:{seq:[["Pull-ups","pullup"],["Push-ups","pushup"],["Goblet squats","goblet"],["Plank","plank"]], each:3900},
-};
 const ANIM_BY_NAME = {
   "Arm circles":"armCircles","Leg swings":"legSwing","Bodyweight squats":"squat","Lunge with twist":"lunge","Dead hang":"deadHang",
   "Push-ups":"pushup","Goblet squat":"goblet","Dumbbell shoulder press":"press","Bulgarian split squat":"bulgarian",
@@ -420,29 +317,177 @@ const ANIM_BY_NAME = {
   "Standing quad stretch":"quad","Child's pose":"child",
 };
 
+/* ===================== FIGURE: skeleton, motion, rendering =====================
+   Poses are authored as joint positions (side view, figure faces +x unless a.face=-1, floor y=183).
+   They are only "intent": every frame is rebuilt on one fixed skeleton, so bones never stretch.
+   - Pelvis position, spine and head angles are interpolated.
+   - A hand or foot that stays put between two keys is planted: knee/elbow solved by IK so it
+     stays exactly on the floor, bar or bench. Free limbs rotate at their joints (FK).
+   - Timing: a short pause at each end of a rep, eased in and out. */
 const LIMBS = ["h","s","p","e","w","k","f","e2","w2","k2","f2"];
+const BONE = {spine:50, neck:16, thigh:41, shin:40, upper:26, fore:24}, FLOOR=177;
+const LIMB_DEF = [ // [mid, end, root, upperLen, lowerLen, default bend (+1 knee forward, -1 elbow back)]
+  ["k","f","p","thigh","shin", 1], ["k2","f2","p","thigh","shin", 1],
+  ["e","w","s","upper","fore",-1], ["e2","w2","s","upper","fore",-1]];
 function fill(p){ const q={...p};
   for(const [far,near] of [["e2","e"],["w2","w"],["k2","k"],["f2","f"]]) if(!q[far]) q[far]=[q[near][0]-4,q[near][1]];
   return q; }
-const ease = u => u*u*(3-2*u);
-function poseAt(a, T){
-  if(a.fn) return fill(a.fn((T % a.ms)/a.ms));
-  const n=a.keys.length, seg=Math.floor(T/a.ms)%n, u=(T%a.ms)/a.ms;
-  const v=ease(Math.min(1,Math.max(0,(u-0.15)/0.7)));
-  const A=fill(a.keys[seg]), B=fill(a.keys[(seg+1)%n]), out={};
-  for(const k of LIMBS) out[k]=[A[k][0]+(B[k][0]-A[k][0])*v, A[k][1]+(B[k][1]-A[k][1])*v];
+const ang=(a,b)=>Math.atan2(b[1]-a[1],b[0]-a[0]);
+const dirv=t=>[Math.cos(t),Math.sin(t)];
+const add2=(a,v,l)=>[a[0]+v[0]*l,a[1]+v[1]*l];
+const lerp2=(a,b,v)=>[a[0]+(b[0]-a[0])*v,a[1]+(b[1]-a[1])*v];
+const lerpA=(a,b,v)=>{ let d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI; return a+d*v; };
+const dist=(a,b)=>Math.hypot(b[0]-a[0],b[1]-a[1]);
+const cross=(r,m,t)=>(m[0]-r[0])*(t[1]-r[1])-(m[1]-r[1])*(t[0]-r[0]);
+/* 2-bone IK: elbow/knee position for root->target with fixed lengths, bending to side sg. */
+function ik(r,t,L1,L2,sg){
+  const d=Math.min(L1+L2-0.01,Math.max(Math.abs(L1-L2)+0.01,dist(r,t))), phi=ang(r,t);
+  const al=Math.acos(Math.max(-1,Math.min(1,(L1*L1+d*d-L2*L2)/(2*L1*d))));
+  const tt=add2(r,dirv(phi),d);
+  let m=add2(r,dirv(phi+al),L1); const m2=add2(r,dirv(phi-al),L1);
+  if(sg==="up"){ if(m2[1]<m[1]) m=m2; } else if(Math.sign(cross(r,m,tt))!==sg) m=m2;
+  return [m,add2(m,dirv(ang(m,tt)),L2)];
+}
+/* Key -> skeleton description (angles + targets). Cached per key object. */
+const KEYC=new WeakMap();
+function prep(k0){
+  if(KEYC.has(k0)) return KEYC.get(k0);
+  const k=fill(k0), o={p:k.p, sp:ang(k.p,k.s), hd:ang(k.s,k.h), ft:k.ft||[0,0], L:{}};
+  for(const [m,e,r] of LIMB_DEF){ const bend=cross(k[r],k[m],k[e])/((dist(k[r],k[m])*dist(k[r],k[e]))||1);   // sine of the bend angle
+    o.L[e]={up:ang(k[r],k[m]), lo:ang(k[m],k[e]), end:k[e], bend, hi:!!(k.hi&&k.hi.includes(e))}; }
+  KEYC.set(k0,o); return o;
+}
+function build(A,B,v,face,slide){
+  const P=lerp2(A.p,B.p,v), sp=lerpA(A.sp,B.sp,v), hd=lerpA(A.hd,B.hd,v);
+  const s=add2(P,dirv(sp),BONE.spine), h=add2(s,dirv(hd),BONE.neck), out={p:P,s,h,ft:[A.ft[0]+(B.ft[0]-A.ft[0])*v, A.ft[1]+(B.ft[1]-A.ft[1])*v]};
+  for(const [m,e,r,u,l,def] of LIMB_DEF){
+    const a=A.L[e], b=B.L[e], root=r==="p"?P:s, planted=dist(a.end,b.end)<4 || (slide&&slide.includes(e));
+    if(planted){ const bb=Math.abs(a.bend)>=Math.abs(b.bend)?a.bend:b.bend, sg=a.hi&&b.hi?"up":Math.abs(bb)>.12?Math.sign(bb):def*face;
+      [out[m],out[e]]=ik(root,lerp2(a.end,b.end,v),BONE[u],BONE[l],sg); }
+    else { out[m]=add2(root,dirv(lerpA(a.up,b.up,v)),BONE[u]); out[e]=add2(out[m],dirv(lerpA(a.lo,b.lo,v)),BONE[l]);
+      // the floor is solid: a swinging hand or foot that would dip below it slides along it instead
+      if(out[e][1]>FLOOR){ const bb=Math.abs(a.bend)>=Math.abs(b.bend)?a.bend:b.bend; [out[m],out[e]]=ik(root,[out[e][0],FLOOR],BONE[u],BONE[l],Math.abs(bb)>.12?Math.sign(bb):def*face); } }
+  }
   return out;
 }
+const easeIO = u => u<.5 ? 4*u*u*u : 1-Math.pow(-2*u+2,3)/2;
+function poseAt(a, T){
+  const face=a.face||1;
+  if(a.fn){ const K=prep(a.fn((T % a.ms)/a.ms)); KEYC.delete(K); return build(K,K,0,face); }
+  const n=a.keys.length, seg=Math.floor(T/a.ms)%n, u=(T%a.ms)/a.ms, hold=a.hold??.16;
+  const v=easeIO(Math.min(1,Math.max(0,(u-hold)/(1-2*hold))));
+  return build(prep(a.keys[seg]),prep(a.keys[(seg+1)%n]),v,face,a.slide);
+}
 
+/* ---------- rendering ---------- */
 let demoName=null, demoT0=0;
 function getCol(cv){ const cs=getComputedStyle(cv), g=k=>cs.getPropertyValue(k).trim();
-  return {fig:g("--fig-hi"), hi:g("--fig-hi"), lo:g("--fig-lo"), farHi:g("--far-hi"), farLo:g("--far-lo"), metalHi:g("--metal-hi"), metalLo:g("--metal-lo"),
-    prop:g("--prop"), floor:g("--floor"), shadow:g("--shadow")}; }
+  return {hi:g("--fig-hi"), mid:g("--fig-mid"), lo:g("--fig-lo"), farHi:g("--far-hi"), farMid:g("--far-mid"), farLo:g("--far-lo"),
+    metalHi:g("--metal-hi"), metalLo:g("--metal-lo"), prop:g("--prop"), propHi:g("--prop-hi"), floor:g("--floor"), shadow:g("--shadow")}; }
 function sizeCanvas(cv){
   const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
   if(!W||!H) return false;
   if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);}
   return true;
+}
+const LIGHT=[-0.42,-0.91];
+/* Samples a limb chain into points with widths from a profile. prof(t) gives width, t in 0..1 along the whole chain. */
+function chain(pts, prof, per){
+  const segs=pts.length-1, out=[];
+  for(let i=0;i<segs;i++) for(let j=0;j<per;j++){ const v=j/per; out.push({x:pts[i][0]+(pts[i+1][0]-pts[i][0])*v, y:pts[i][1]+(pts[i+1][1]-pts[i][1])*v, t:(i+v)/segs}); }
+  out.push({x:pts[segs][0], y:pts[segs][1], t:1});
+  out.forEach((q,i)=>{ const a=out[Math.max(0,i-1)], b=out[Math.min(out.length-1,i+1)], L=Math.hypot(b.x-a.x,b.y-a.y)||1;
+    q.tx=(b.x-a.x)/L; q.ty=(b.y-a.y)/L; q.nx=-q.ty; q.ny=q.tx; q.w=prof(q.t); });
+  return out;
+}
+function outline(c, q){   // smooth closed outline with round caps
+  const L=q.map(p=>[p.x+p.nx*p.w/2,p.y+p.ny*p.w/2]), R=q.map(p=>[p.x-p.nx*p.w/2,p.y-p.ny*p.w/2]).reverse();
+  const ring=[...L,...R]; c.beginPath(); c.moveTo((ring[0][0]+ring[1][0])/2,(ring[0][1]+ring[1][1])/2);
+  for(let i=1;i<ring.length;i++){ const a=ring[i], b=ring[(i+1)%ring.length]; c.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2); }
+  c.closePath();
+  // caps and joints must wind the same way as the outline, or "nonzero" filling punches holes
+  let area=0; for(let i=0;i<ring.length;i++){ const a=ring[i], b=ring[(i+1)%ring.length]; area+=a[0]*b[1]-b[0]*a[1]; }
+  q.ccw = area<0;
+  const e=q[q.length-1], s0=q[0]; circ(c,e.x,e.y,e.w/2,q.ccw); circ(c,s0.x,s0.y,s0.w/2,q.ccw);
+}
+function circ(c,x,y,r,ccw){ c.moveTo(x+r,y); c.arc(x,y,r,0,Math.PI*2,ccw); }
+function joints(c,q,idx){ idx.forEach(i=>{ const p=q[i]; circ(c,p.x,p.y,p.w/2,q.ccw); }); }
+/* Cylinder shading: base tone, then a soft highlight on the lit side and a core shadow on the far side. */
+function shadeBody(c,q,tone,extra){
+  c.save(); c.fillStyle=tone[1]; outline(c,q); if(extra) extra(); c.fill("nonzero"); c.clip("nonzero");
+  // one continuous ribbon per band (no per-segment overlaps), feathered by stacking narrower copies
+  const ribbon=(k,wk)=>{ const Lp=[], Rp=[];
+    q.forEach(p=>{ const sl=Math.max(-1,Math.min(1,(p.nx*LIGHT[0]+p.ny*LIGHT[1])*3)), cx=p.x+p.nx*sl*p.w*k, cy=p.y+p.ny*sl*p.w*k, hw=p.w*wk/2;
+      Lp.push([cx+p.nx*hw,cy+p.ny*hw]); Rp.push([cx-p.nx*hw,cy-p.ny*hw]); });
+    const ring=[...Lp,...Rp.reverse()]; c.beginPath(); c.moveTo(...ring[0]); ring.forEach(pt=>c.lineTo(...pt)); c.closePath(); c.fill(); };
+  const band=(k,wk,col,al)=>{ c.fillStyle=col; for(const f of [1,.66,.36]){ c.globalAlpha=al/3; ribbon(k,wk*f); } };
+  band(-.36,.62,tone[2],.9);   // core shadow (away from light)
+  band(.2,.56,tone[0],.85);    // broad highlight
+  band(.24,.2,tone[0],.6);     // tight highlight
+  c.restore();
+}
+const PROF = {
+  leg: t=> t<.5 ? (t<.08?14.5:14.5-(t-.08)/.42*4.3) : (()=>{const u=(t-.5)/.5; return u<.28?10.2+u/.28*1.3:11.5-(u-.28)/.72*5.2;})(),
+  arm: t=> t<.5 ? (t<.15?10.6-t*4:t<.38?10:10-(t-.38)/.12*2.2) : (()=>{const u=(t-.5)/.5; return u<.22?7.8+u/.22*.9:8.7-(u-.22)/.78*3.1;})(),
+};
+function drawLimb(c,root,mid,end,kind,tone){ const q=chain([root,mid,end],PROF[kind],7); shadeBody(c,q,tone,()=>joints(c,q,[7])); return q; }
+function drawFoot(c,ankle,knee,face,tone,pitch){
+  const sd=dirv(ang(knee,ankle)), f0=face>0?[sd[1],-sd[0]]:[-sd[1],sd[0]], r=(pitch||0)*D2R*face,   // toes point to the front, pitch + = toes down
+    fd=[f0[0]*Math.cos(r)-f0[1]*Math.sin(r), f0[0]*Math.sin(r)+f0[1]*Math.cos(r)];
+  const heel=add2(add2(ankle,sd,2.5),fd,-4), toe=add2(add2(ankle,sd,4.2),fd,12.5);
+  const q=chain([heel,add2(add2(ankle,sd,3.6),fd,4),toe],t=>t<.5?7.4-t*1.2:6.8-(t-.5)*4.6,4); shadeBody(c,q,tone);
+}
+function drawHand(c,wrist,elbow,tone){ const d=dirv(ang(elbow,wrist)), q=chain([wrist,add2(wrist,d,6.5)],t=>6.2-t*1.4,3); shadeBody(c,q,tone); }
+/* Torso: hips, waist, ribcage and shoulders along the spine, chest on the front side, glutes on the back. */
+function drawTorso(c,P,face,tone){
+  const d=dirv(ang(P.p,P.s)), L=dist(P.p,P.s), n=face>0?[-d[1],d[0]]:[d[1],-d[0]];   // n = front
+  const prof=[[-.07,7,9.5],[.08,8.2,12],[.22,8,10.6],[.42,7.6,7.6],[.64,10.6,8.4],[.84,10.8,9.6],[1.0,7.6,9.6],[1.1,3.5,5.5]]; // [t, front, back]
+  const F=prof.map(([t,f])=>add2(add2(P.p,d,t*L),n,f)), Bk=prof.map(([t,,b])=>add2(add2(P.p,d,t*L),n,-b)).reverse(), ring=[...F,...Bk];
+  c.save(); c.beginPath(); c.moveTo((ring[0][0]+ring[1][0])/2,(ring[0][1]+ring[1][1])/2);
+  for(let i=1;i<=ring.length;i++){ const a=ring[i%ring.length], b=ring[(i+1)%ring.length]; c.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2); }
+  c.closePath(); c.fillStyle=tone[1]; c.fill(); c.clip();
+  const lit=(n[0]*LIGHT[0]+n[1]*LIGHT[1])>0?1:-1, side=k=>add2(n,[0,0],k*lit);
+  const g=c.createLinearGradient(...add2(add2(P.p,d,L*.5),n,-11*lit),...add2(add2(P.p,d,L*.5),n,11*lit));
+  g.addColorStop(0,tone[2]); g.addColorStop(.45,tone[1]); g.addColorStop(.78,tone[0]); g.addColorStop(1,tone[1]);
+  c.fillStyle=g; c.fillRect(Math.min(P.p[0],P.s[0])-40,Math.min(P.p[1],P.s[1])-40,Math.abs(P.s[0]-P.p[0])+80,Math.abs(P.s[1]-P.p[1])+80);
+  // subtle pec / ab separation shading on the front
+  c.globalAlpha=.18; c.strokeStyle=tone[2]; c.lineWidth=1.2; c.beginPath();
+  const pc=add2(add2(P.p,d,L*.62),n,7.5); c.moveTo(...add2(pc,d,-1)); c.quadraticCurveTo(...add2(add2(pc,n,2.5),d,-5),...add2(add2(pc,n,-3),d,-8)); c.stroke();
+  c.restore();
+}
+function drawHead(c,P,face,tone){
+  const a=ang(P.s,P.h), d=dirv(a), n=face>0?[-d[1],d[0]]:[d[1],-d[0]];
+  const nq=chain([add2(P.s,d,2),add2(P.h,d,-6)],()=>7.4,3); shadeBody(c,nq,tone);
+  const cx=P.h[0]+n[0]*1.2, cy=P.h[1]+n[1]*1.2;
+  c.save(); c.translate(cx,cy); c.rotate(a+Math.PI/2);
+  const g=c.createRadialGradient(LIGHT[0]*4-1,LIGHT[1]*4,1,0,0,12.5); g.addColorStop(0,tone[0]); g.addColorStop(.55,tone[1]); g.addColorStop(1,tone[2]);
+  c.fillStyle=g; c.beginPath(); c.ellipse(0,0,9.3,11.2,0,0,Math.PI*2); c.fill();
+  c.restore();
+  // jaw: a small chin bump on the face side keeps the head from reading as a ball
+  const ch=add2(add2(P.h,d,-6.5),n,6.2); c.fillStyle=tone[1]; c.beginPath(); c.ellipse(ch[0],ch[1],3.6,3,a,0,Math.PI*2); c.fill();
+}
+function drawDumbbell(c,pt,COL,horiz){
+  const g=c.createLinearGradient(pt[0],pt[1]-8,pt[0],pt[1]+8); g.addColorStop(0,COL.metalHi); g.addColorStop(.5,COL.metalLo); g.addColorStop(1,"#18181b");
+  c.fillStyle=COL.metalLo; c.fillRect(pt[0]-6,pt[1]-1.8,12,3.6);
+  c.fillStyle=g; c.beginPath(); c.roundRect(pt[0]-14,pt[1]-7.5,8,15,2.5); c.roundRect(pt[0]+6,pt[1]-7.5,8,15,2.5); c.fill();
+  c.fillStyle="rgba(255,255,255,.18)"; c.fillRect(pt[0]-13,pt[1]-6.5,6,1.4); c.fillRect(pt[0]+7,pt[1]-6.5,6,1.4);
+}
+function drawProps(c,pr,P,COL){
+  const metal=(x1,y1,x2,y2,w)=>{ c.lineCap="round"; c.strokeStyle=COL.metalLo; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+    c.strokeStyle=COL.metalHi; c.lineWidth=w*.35; c.beginPath(); c.moveTo(x1,y1-w*.18); c.lineTo(x2,y2-w*.18); c.stroke(); };
+  if(pr.bar){ const y=typeof pr.bar==="number"?pr.bar:-7; metal(96,y,96,y-27,4); metal(204,y,204,y-27,4); metal(86,y,214,y,5); }
+  if(pr.chair){ const [x1,x2,y]=pr.chair; c.fillStyle=COL.prop; c.fillRect(x1+5,y+6,4,183-y-6); c.fillRect(x2-9,y+6,4,183-y-6);
+    const g=c.createLinearGradient(0,y-1,0,y+9); g.addColorStop(0,COL.propHi); g.addColorStop(1,COL.prop); c.fillStyle=g; c.beginPath(); c.roundRect(x1,y-1,x2-x1,9,4); c.fill(); }
+  if(pr.wall!=null){ const g=c.createLinearGradient(pr.wall-10,0,pr.wall,0); g.addColorStop(0,"rgba(255,255,255,0)"); g.addColorStop(1,COL.prop); c.fillStyle=g; c.fillRect(pr.wall-10,-30,10,213); }
+  if(pr.door!=null){ c.fillStyle=COL.prop; c.fillRect(pr.door-4,-30,8,213); c.fillStyle=COL.propHi; c.fillRect(pr.door-4,-30,2,213); }
+  if(pr.lines){ pr.lines.forEach(l=>metal(l[0],l[1],l[2],l[3],l[4]||5)); }
+  if(pr.pads){ pr.pads.forEach(([x1,y1,x2,y2,w])=>{ c.lineCap="round"; c.strokeStyle=COL.prop; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+    c.strokeStyle=COL.propHi; c.lineWidth=w*.3; c.beginPath(); c.moveTo(x1,y1-w*.25); c.lineTo(x2,y2-w*.25); c.stroke(); }); }
+  if(pr.cable){ c.strokeStyle=COL.metalHi; c.lineWidth=1.3; c.beginPath(); c.moveTo(pr.cable[0],pr.cable[1]); c.lineTo(P.w[0],P.w[1]); c.stroke();
+    c.fillStyle=COL.metalLo; c.beginPath(); c.arc(pr.cable[0],pr.cable[1],6,0,Math.PI*2); c.fill(); c.fillStyle=COL.metalHi; c.beginPath(); c.arc(pr.cable[0],pr.cable[1],2,0,Math.PI*2); c.fill(); }
+  if(pr.plate){ const dx=P.f[0]-P.k[0], dy=P.f[1]-P.k[1], L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L, nx=-uy, ny=ux, cx=P.f[0]+ux*6, cy=P.f[1]+uy*6;
+    c.save(); c.translate(cx,cy); c.rotate(Math.atan2(ny,nx)); const g=c.createLinearGradient(0,-4,0,4); g.addColorStop(0,COL.metalHi); g.addColorStop(1,COL.metalLo);
+    c.fillStyle=g; c.beginPath(); c.roundRect(-26,-4,52,8,3); c.fill(); c.restore(); }
 }
 /* Draws one frame. Logical space 300 x 215 (y shifted 25 so the bar fits). Fits by height and centres. */
 function renderPose(cv, name, T){
@@ -453,58 +498,28 @@ function renderPose(cv, name, T){
   const B=boundsFor(cv.dataset.anim||name), pad=cv.classList.contains("thumb")?.94:.82;
   const sc=Math.min(cv.width/(B[2]-B[0]), cv.height/(B[3]-B[1]))*pad;
   const ox=cv.width/2-sc*(B[0]+B[2])/2, oy=cv.height/2-sc*(B[1]+B[3])/2;
-  c.setTransform(sc,0,0,sc,ox,oy);
-  c.lineCap="round"; c.lineJoin="round";
-  const pr=a.props||{}, P=poseAt(a,T);
-  // floor shadow
-  const minX=Math.min(P.f[0],P.f2[0],P.k[0],P.p[0],P.w[0]), maxX=Math.max(P.f[0],P.f2[0],P.h[0],P.w[0],P.p[0]);
-  { const cx=(minX+maxX)/2, rx=(maxX-minX)/2+22; c.save(); c.translate(cx,183); c.scale(1,7/rx);
-    const sg=c.createRadialGradient(0,0,0,0,0,rx); sg.addColorStop(0,COL.shadow); sg.addColorStop(1,"rgba(0,0,0,0)");
-    c.fillStyle=sg; c.beginPath(); c.arc(0,0,rx,0,Math.PI*2); c.fill(); c.restore(); }
+  c.setTransform(sc,0,0,sc,ox,oy); c.lineCap="round"; c.lineJoin="round";
+  const pr=a.props||{}, P=poseAt(a,T), face=a.face||1;
+  const NEAR=[COL.hi,COL.mid,COL.lo], FAR=[COL.farHi,COL.farMid,COL.farLo];
+  // floor: soft overall shadow plus contact shadows where the body touches the ground
+  const xs=LIMBS.map(k=>P[k][0]), minX=Math.min(...xs), maxX=Math.max(...xs);
+  const blob=(x,rx,ry,al)=>{ c.save(); c.translate(x,183); c.scale(1,ry/rx); const g=c.createRadialGradient(0,0,0,0,0,rx); g.addColorStop(0,`rgba(0,0,0,${al})`); g.addColorStop(1,"rgba(0,0,0,0)"); c.fillStyle=g; c.beginPath(); c.arc(0,0,rx,0,Math.PI*2); c.fill(); c.restore(); };
+  blob((minX+maxX)/2,(maxX-minX)/2+30,8,.45);
+  LIMBS.forEach(k=>{ if(P[k][1]>168) blob(P[k][0],14,3,.5*Math.min(1,(P[k][1]-168)/12)); });
   { const fg=c.createLinearGradient(-60,0,360,0); fg.addColorStop(0,"rgba(0,0,0,0)"); fg.addColorStop(.5,COL.floor); fg.addColorStop(1,"rgba(0,0,0,0)");
-    c.strokeStyle=fg; c.lineWidth=1; c.beginPath(); c.moveTo(-60,183); c.lineTo(360,183); c.stroke(); }
-  // props
-  c.fillStyle=COL.prop; c.strokeStyle=COL.prop;
-  if(pr.bar){ c.lineWidth=5; c.beginPath(); c.moveTo(90,-7); c.lineTo(210,-7); c.stroke();
-    c.lineWidth=4; c.beginPath(); c.moveTo(96,-7); c.lineTo(96,-30); c.moveTo(204,-7); c.lineTo(204,-30); c.stroke(); }
-  if(pr.chair){ const [x1,x2,y]=pr.chair; c.beginPath(); c.roundRect(x1,y,x2-x1,7,3); c.fill(); c.lineWidth=5; c.beginPath();
-    c.moveTo(x1+6,y+7); c.lineTo(x1+6,183); c.moveTo(x2-6,y+7); c.lineTo(x2-6,183); c.stroke(); }
-  if(pr.wall!=null){ c.fillRect(pr.wall-8,-30,8,213); }
-  if(pr.door!=null){ c.fillRect(pr.door-4,-30,8,213); }
-  if(pr.lines){ pr.lines.forEach(l=>{ c.lineWidth=l[4]||5; c.beginPath(); c.moveTo(l[0],l[1]); c.lineTo(l[2],l[3]); c.stroke(); }); }
-  /* Realistic mannequin: tapered limbs shaded like cylinders, a torso that narrows to the waist, a lit head. */
-  const shade=(a1,b1,wa,wb,tone)=>{            // tone: [dark, light] edge colours
-    const dx=b1[0]-a1[0], dy=b1[1]-a1[1], L=Math.hypot(dx,dy)||1, nx=-dy/L, ny=dx/L, ra=wa/2, rb=wb/2;
-    const g=c.createLinearGradient(a1[0]+nx*ra,a1[1]+ny*ra,a1[0]-nx*ra,a1[1]-ny*ra);
-    g.addColorStop(0,tone[0]); g.addColorStop(.38,tone[1]); g.addColorStop(1,tone[0]);
-    c.fillStyle=g; c.beginPath();
-    const ang=Math.atan2(dy,dx);
-    c.arc(a1[0],a1[1],ra,ang+Math.PI/2,ang-Math.PI/2,false);
-    c.arc(b1[0],b1[1],rb,ang-Math.PI/2,ang+Math.PI/2,false);
-    c.closePath(); c.fill();
-  };
-  const NEAR=[COL.lo,COL.hi], FAR=[COL.farLo,COL.farHi];
-  const leg=(k,f,t)=>{ shade(P.p,k,15,11,t); shade(k,f,11,7.5,t); };
-  const arm=(e,w,t)=>{ shade(P.s,e,11,8.5,t); shade(e,w,8.5,6.5,t); };
-  const db=pt=>{ const g=c.createLinearGradient(pt[0],pt[1]-7,pt[0],pt[1]+7); g.addColorStop(0,COL.metalHi); g.addColorStop(1,COL.metalLo);
-    c.fillStyle=g; c.beginPath(); c.roundRect(pt[0]-12,pt[1]-7,7,14,2.5); c.roundRect(pt[0]+5,pt[1]-7,7,14,2.5); c.fill();
-    c.fillStyle=COL.metalLo; c.fillRect(pt[0]-5,pt[1]-1.6,10,3.2); };
-  c.strokeStyle=COL.prop; c.fillStyle=COL.prop;
-  if(pr.cable){ c.lineWidth=1.6; c.beginPath(); c.moveTo(pr.cable[0],pr.cable[1]); c.lineTo(P.w[0],P.w[1]); c.stroke(); c.beginPath(); c.arc(pr.cable[0],pr.cable[1],5,0,Math.PI*2); c.fill(); }
-  if(pr.plate){ const dx=P.f[0]-P.p[0], dy=P.f[1]-P.p[1], L=Math.hypot(dx,dy)||1, nx=-dy/L*24, ny=dx/L*24, ox=dx/L*7, oy=dy/L*7;
-    c.lineWidth=7; c.beginPath(); c.moveTo(P.f[0]+nx+ox,P.f[1]+ny+oy); c.lineTo(P.f[0]-nx+ox,P.f[1]-ny+oy); c.stroke(); }
-  leg(P.k2,P.f2,FAR); arm(P.e2,P.w2,FAR);
-  if(pr.db==="both") db(P.w2);
-  // torso: chest wider than waist, plus a short neck
-  const mid=[P.s[0]+(P.p[0]-P.s[0])*.45, P.s[1]+(P.p[1]-P.s[1])*.45];
-  shade(P.s,mid,25,21,NEAR); shade(mid,P.p,21,18,NEAR);
-  const nk=[P.s[0]+(P.h[0]-P.s[0])*.6, P.s[1]+(P.h[1]-P.s[1])*.6]; shade(P.s,nk,8,7,NEAR);
-  leg(P.k,P.f,NEAR); arm(P.e,P.w,NEAR);
-  if(pr.db) db(P.w);
-  const hg=c.createRadialGradient(P.h[0]-3,P.h[1]-4,1,P.h[0],P.h[1],12); hg.addColorStop(0,COL.hi); hg.addColorStop(1,COL.lo);
-  c.fillStyle=hg; c.beginPath(); c.ellipse(P.h[0],P.h[1],10,11.5,0,0,Math.PI*2); c.fill();
+    c.strokeStyle=fg; c.lineWidth=.8; c.beginPath(); c.moveTo(-60,183.5); c.lineTo(360,183.5); c.stroke(); }
+  drawProps(c,pr,P,COL);
+  // far side (behind the body)
+  drawLimb(c,P.s,P.e2,P.w2,"arm",FAR); drawHand(c,P.w2,P.e2,FAR);
+  if(pr.db==="both") drawDumbbell(c,P.w2,COL);
+  drawLimb(c,P.p,P.k2,P.f2,"leg",FAR); drawFoot(c,P.f2,P.k2,face,FAR,P.ft[1]);
+  drawTorso(c,P,face,NEAR);
+  drawLimb(c,P.p,P.k,P.f,"leg",NEAR); drawFoot(c,P.f,P.k,face,NEAR,P.ft[0]);
+  drawHead(c,P,face,NEAR);
+  drawLimb(c,P.s,P.e,P.w,"arm",NEAR); drawHand(c,P.w,P.e,NEAR);
+  if(pr.db) drawDumbbell(c,P.w,COL);
   if(caption){ c.setTransform(1,0,0,1,0,0); const d=window.devicePixelRatio||1;
-    c.fillStyle=COL.fig; c.font=`600 ${13*d}px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif`;
+    c.fillStyle=COL.hi; c.font=`600 ${13*d}px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif`;
     c.fillText(caption, 16*d, 26*d); }
 }
 const BOUNDS={};
@@ -514,21 +529,144 @@ function boundsFor(name){
   let b=[1e9,1e9,-1e9,-1e9]; const add=(x,y)=>{b[0]=Math.min(b[0],x);b[1]=Math.min(b[1],y);b[2]=Math.max(b[2],x);b[3]=Math.max(b[3],y);};
   const members = a.seq ? a.seq.map(q=>ANIM[q[1]]) : [a];
   for(const m of members){
-    const poses = m.fn ? Array.from({length:12},(_,i)=>fill(m.fn(i/12))) : m.keys.map(fill);
+    const total=m.fn?m.ms:m.ms*m.keys.length, poses=Array.from({length:24},(_,i)=>poseAt(m,total*i/24));
     for(const p of poses) for(const k of LIMBS) add(p[k][0],p[k][1]);
     const pr=m.props||{};
-    if(pr.bar){ add(90,-30); add(210,-7); }
+    if(pr.bar){ const y=typeof pr.bar==="number"?pr.bar:-7; add(86,y-27); add(214,y); }
     if(pr.cable) add(pr.cable[0],pr.cable[1]);
     if(pr.lines) pr.lines.forEach(l=>{ add(l[0],l[1]); add(l[2],l[3]); });
-    if(pr.plate) poses.forEach(q=>{ add(q.f[0]+26,q.f[1]-26); add(q.f[0]-26,q.f[1]+26); });
+    if(pr.pads) pr.pads.forEach(l=>{ add(l[0],l[1]); add(l[2],l[3]); });
+    if(pr.plate) poses.forEach(q=>{ add(q.f[0]+28,q.f[1]-28); add(q.f[0]-28,q.f[1]+28); });
     if(pr.chair){ add(pr.chair[0],pr.chair[2]); add(pr.chair[1],pr.chair[2]); }
-    if(pr.wall!=null) add(pr.wall-8,100);
+    if(pr.wall!=null) add(pr.wall-10,100);
     if(pr.door!=null) add(pr.door-4,100);
   }
   add(b[0],186);
-  b=[b[0]-16,b[1]-16,b[2]+16,b[3]+6];
+  b=[b[0]-20,b[1]-18,b[2]+20,b[3]+6];
   return BOUNDS[name]=b;
 }
+/* ---------- exercise library ----------
+   Q() builds one pose on the fixed skeleton. Angles in degrees: 0 = right (the way the figure faces),
+   90 = down, -90 = up. p = pelvis, sp = spine angle (pelvis to shoulders), hd = neck angle.
+   A limb is either a contact point [x,y] for the wrist/ankle (knee/elbow solved, kb/eb = bend side)
+   or {a:[upper, lower]} joint angles. ft = [near, far] foot pitch, + points the toes down.
+   Floor: ankles at y 177. Pull-up bar: hands at y -20. */
+const D2R=Math.PI/180;
+function Q(o){
+  const p=o.p, s=add2(p,dirv(o.sp*D2R),BONE.spine), h=add2(s,dirv((o.hd??o.sp)*D2R),BONE.neck), k={p,s,h,ft:o.ft||[0,0],hi:o.hi};
+  const limb=(spec,root,L1,L2,sg,m,e)=>{
+    if(Array.isArray(spec)){ const [mm,ee]=ik(root,spec,BONE[L1],BONE[L2],sg); k[m]=mm; k[e]=ee; }
+    else { k[m]=add2(root,dirv(spec.a[0]*D2R),BONE[L1]); k[e]=add2(k[m],dirv(spec.a[1]*D2R),BONE[L2]); } };
+  const far=(x,dx,da)=>Array.isArray(x)?[x[0]+dx,x[1]]:{a:[x.a[0]+da,x.a[1]+da]};
+  limb(o.f,p,"thigh","shin",o.kb??1,"k","f");      limb(o.f2??far(o.f,-6,4),p,"thigh","shin",o.kb2??o.kb??1,"k2","f2");
+  limb(o.w,s,"upper","fore",o.eb??-1,"e","w");     limb(o.w2??far(o.w,-4,-5),s,"upper","fore",o.eb2??o.eb??-1,"e2","w2");
+  return k;
+}
+const STAND = o => Q({p:[150,96], sp:-90, hd:-90, f:[153,177], f2:[146,177], w:{a:[93,96]}, w2:{a:[87,92]}, ...o});
+const HANG  = o => Q({p:[150,80], sp:-90, hd:-88, f:{a:[93,97]}, f2:{a:[89,95]}, w:[153,-20], w2:[147,-20], ...o});
+const PLANK_HI = (hx,o) => { const s=[hx,127], th=Math.atan2(-48,131), p=[s[0]-Math.cos(th)*50, s[1]-Math.sin(th)*50];
+  return Q({p, sp:th/D2R, hd:th/D2R+4, f:[hx-122,175], f2:[hx-127,175], w:[hx,177], w2:[hx-4,177], ...o}); };
+/* walking / running: legs swing from the hip, the knee folds on the way through,
+   and the pelvis rides on whichever foot is lowest so the feet never sink or float. */
+function gait(t, A, bend, lean, arm, fore){
+  const ph=2*Math.PI*t, bob=-2.5*Math.abs(Math.sin(ph))*(A>30?1:.3);
+  const leg=q=>{ const th=A*Math.sin(q), kb=bend*Math.max(0,Math.cos(q))+6; return {a:[90-th, 90-th+kb]}; };
+  const armQ=q=>{ const a=-arm*Math.sin(q); return {a:[90-a, 90-a-fore]}; };
+  const k=Q({p:[150,96+bob], sp:-90+lean, hd:-90+lean*.6, f:leg(ph), f2:leg(ph+Math.PI), w:armQ(ph), w2:armQ(ph+Math.PI)});
+  const dy=177-Math.max(k.f[1],k.f2[1]); LIMBS.forEach(j=>{ k[j]=[k[j][0],k[j][1]+dy]; }); k.p=k.p; return k;
+}
+const ANIM = {
+  armCircles:{ms:1600, fn:t=>{ const a=90-t*360; return STAND({w:{a:[a,a-4]}, w2:{a:[a+6,a+2]}}); }},
+  legSwing:{ms:1500, props:{wall:100}, fn:t=>{ const sw=Math.sin(t*Math.PI*2), th=90-38*sw;
+     return STAND({p:[140,96], f:{a:[th, th+(sw<0?14:3)]}, f2:[138,177], w2:[104,74], w:{a:[100,70]}}); }},
+  squat:{ms:1200, keys:[STAND({w:{a:[80,70]}, w2:{a:[76,66]}}),
+     Q({p:[124,142], sp:-50, hd:-66, f:[153,177], f2:[146,177], w:{a:[-6,-4]}, w2:{a:[-2,0]}})]},
+  lunge:{ms:1200, keys:[
+     Q({p:[151,103], sp:-90, hd:-90, f:[188,177], f2:[114,177], w:{a:[70,-15]}, w2:{a:[64,-25]}, ft:[0,25]}),
+     Q({p:[151,137], sp:-88, hd:-90, f:[188,177], f2:[114,177], w:{a:[40,-60]}, w2:{a:[100,10]}, ft:[0,25]})]},
+  deadHang:{ms:1800, props:{bar:-25}, hold:.3, keys:[HANG({}), HANG({p:[150,77], f:{a:[96,100]}, f2:{a:[92,98]}})]},
+  pushup:{ms:1100, hold:.12, keys:[PLANK_HI(190,{}),
+     Q({p:[148.3,165.7], sp:-6.6, hd:-4, f:[68,175], f2:[63,175], w:[190,177], w2:[186,177]})]},
+  goblet:{ms:1400, props:{db:true}, keys:[STAND({w:{a:[76,-74]}, w2:{a:[70,-78]}}),
+     Q({p:[124,142], sp:-55, hd:-70, f:[153,177], f2:[146,177], w:{a:[60,-80]}, w2:{a:[54,-84]}})]},
+  press:{ms:1100, props:{db:"both"}, keys:[STAND({w:{a:[100,-84]}, w2:{a:[94,-88]}}), STAND({w:{a:[-86,-89]}, w2:{a:[-90,-92]}})]},
+  bulgarian:{ms:1300, props:{db:"both", chair:[55,100,140]}, keys:[
+     Q({p:[152,104], sp:-88, hd:-88, f:[180,177], f2:[96,132], w:{a:[90,92]}, w2:{a:[86,90]}, ft:[0,-60]}),
+     Q({p:[146,138], sp:-82, hd:-86, f:[180,177], f2:[96,132], w:{a:[92,94]}, w2:{a:[88,92]}, ft:[0,-60]})]},
+  // squat down, hands to the floor, hips pop up as the feet kick back, plank, jump in, stand, jump
+  burpee:{ms:500, hold:.06, keys:(()=>{
+     const crouch=Q({p:[130,154], sp:-28, hd:-35, f:[153,177], f2:[146,177], w:[182,177], w2:[178,177]});
+     const kick=Q({p:[140,124], sp:6, hd:22, f:{a:[115,170]}, f2:{a:[111,166]}, w:[182,177], w2:[178,177], ft:[30,30]});
+     return [STAND({}), crouch, kick, PLANK_HI(182,{}), kick, crouch, STAND({}),
+       STAND({p:[150,78], f:{a:[92,95]}, f2:{a:[88,93]}, w:{a:[-96,-92]}, w2:{a:[-90,-88]}, ft:[40,40]})]; })()},
+  pullup:{ms:1400, props:{bar:-25}, hold:.14, keys:[HANG({f:{a:[97,108]}, f2:{a:[93,104]}}),
+     Q({p:[151,44], sp:-91, hd:-86, f:{a:[99,110]}, f2:{a:[95,106]}, w:[153,-20], w2:[147,-20]})]},
+  row:{ms:1200, props:{db:true, chair:[90,205,140]}, keys:[
+     Q({p:[128,96], sp:-5, hd:-12, f:[137,177], f2:{a:[95,178]}, w:{a:[90,91]}, w2:[196,134]}),
+     Q({p:[128,96], sp:-6, hd:-12, f:[137,177], f2:{a:[95,178]}, w:{a:[-158,92]}, w2:[196,134]})]},
+  rdl:{ms:1400, props:{db:"both"}, keys:[STAND({w:{a:[92,93]}, w2:{a:[88,90]}}),
+     Q({p:[126,100], sp:-14, hd:-22, f:[153,177], f2:[146,177], w:{a:[89,91]}, w2:{a:[86,89]}})]},
+  kneeRaise:{ms:1300, props:{bar:-25}, keys:[HANG({}), HANG({sp:-86, f:{a:[-8,86]}, f2:{a:[-4,90]}})]},
+  plank:{ms:2400, hold:.3, keys:[
+     Q({p:[147,157], sp:-13, hd:-8, f:[70,175], f2:[65,175], w:[220,173], w2:[216,173]}),
+     Q({p:[147,155.6], sp:-12.4, hd:-7, f:[70,175], f2:[65,175], w:[220,173], w2:[216,173]})]},
+  chest:{ms:2000, props:{door:140}, hold:.3, keys:[
+     Q({p:[166,96], sp:-90, hd:-90, f:[176,177], f2:[152,177], w:[140,20], eb:1, w2:{a:[92,95]}}),
+     Q({p:[173,97], sp:-83, hd:-86, f:[176,177], f2:[152,177], w:[140,20], eb:1, w2:{a:[96,99]}})]},
+  lat:{ms:2200, props:{door:196}, hold:.2, keys:[
+     Q({p:[146,96], sp:-90, hd:-90, f:[146,177], f2:[140,177], w:[190,70], w2:[186,70]}),
+     Q({p:[106,112], sp:-10, hd:-4, f:[146,177], f2:[140,177], w:[190,70], w2:[186,70]})]},
+  hamstring:{ms:2200, hold:.3, keys:[
+     Q({p:[118,172], sp:-78, hd:-74, f:{a:[0,0]}, f2:{a:[-1,-1]}, w:[168,164], w2:[164,164], ft:[-10,-10]}),
+     Q({p:[118,172], sp:-34, hd:-14, f:{a:[0,0]}, f2:{a:[-1,-1]}, w:[198,166], w2:[194,166], ft:[-10,-10]})]},
+  hipFlexor:{ms:2200, hold:.3, keys:[
+     Q({p:[138,140], sp:-91, hd:-90, f:[184,177], f2:[78,175], w:[174,128], w2:[170,128], ft:[0,-80]}),
+     Q({p:[145,142], sp:-97, hd:-92, f:[184,177], f2:[78,175], w:[176,130], w2:[172,130], ft:[0,-80]})]},
+  quad:{ms:2200, props:{wall:200}, hold:.3, keys:[
+     STAND({f:{a:[100,-92]}, f2:[150,177], w:[141,98], w2:[192,70]}),
+     STAND({f:{a:[106,-98]}, f2:[150,177], w:[137,96], w2:[192,70]})]},
+  child:{ms:2600, hold:.3, keys:[
+     Q({p:[116,152], sp:17, hd:26, f:[112,176], f2:[109,176], w:[222,177], w2:[218,177], ft:[-90,-90]}),
+     Q({p:[115,149.5], sp:15, hd:26, f:[112,176], f2:[109,176], w:[222,177], w2:[218,177], ft:[-90,-90]})]},
+  lateral:{ms:1300, props:{db:"both"}, keys:[
+     STAND({sp:-89, w:{a:[92,94]}, w2:{a:[88,90]}}), STAND({sp:-88, w:{a:[-4,0]}, w2:{a:[-10,-6]}})]},
+  // hips slightly raised so the knee clears the floor as the thigh swings through vertical
+  climber:{ms:560, fn:t=>{ const foot=(ph,dx)=>{ const c=Math.cos(ph), u=.5-.5*Math.sign(c)*Math.pow(Math.abs(c),.45);   // quick switch, time spent at the ends
+       return [70+dx+u*72, 175-14*Math.sin(Math.PI*u)]; };
+     const ph=t*Math.PI*2, sh=[190,127], th=-10*D2R, p=[sh[0]-Math.cos(th)*50, sh[1]-Math.sin(th)*50];
+     return Q({p, sp:-10, hd:-8, f:foot(ph,0), f2:foot(ph+Math.PI,-5), w:[190,177], w2:[186,177]}); }},
+  rest:{ms:3000, hold:.2, keys:[STAND({}), STAND({p:[150,95.6], sp:-90.6, hd:-89, w:{a:[92,94]}})]},
+  run:{ms:720, fn:t=>gait(t,30,75,6,42,80)},
+  sprint:{ms:500, fn:t=>gait(t,40,100,10,55,88)},
+  walk:{ms:1100, fn:t=>gait(t,19,26,2,22,20)},
+  legPress:{ms:1500, slide:["f","f2"], props:{pads:[[52,104,114,152,12],[106,153,140,153,11]], lines:[[96,160,96,183,5],[132,160,132,183,5],[150,150,222,96,4]], plate:1}, keys:[
+     Q({p:[120,140], sp:-143, hd:-128, f:[160,112], f2:[156,112], w:[122,150], w2:[118,150]}),
+     Q({p:[120,140], sp:-143, hd:-128, f:[188,90], f2:[184,90], w:[122,150], w2:[118,150]})]},
+  legExt:{ms:1400, props:{chair:[110,175,138]}, keys:[
+     Q({p:[142,128], sp:-94, hd:-92, f:{a:[2,88]}, f2:{a:[-2,86]}, w:[134,139], w2:[130,139]}),
+     Q({p:[142,128], sp:-94, hd:-92, f:{a:[2,-6]}, f2:{a:[-2,-8]}, w:[134,139], w2:[130,139]})]},
+  legCurl:{ms:1400, face:-1, props:{chair:[55,215,152]}, keys:[
+     Q({p:[134,142], sp:180, hd:-170, f:{a:[0,2]}, f2:{a:[-2,0]}, w:{a:[160,180]}, w2:{a:[156,176]}}),
+     Q({p:[134,142], sp:180, hd:-170, f:{a:[0,-76]}, f2:{a:[-2,-78]}, w:{a:[160,180]}, w2:{a:[156,176]}})]},
+  calf:{ms:1200, props:{db:"both"}, keys:[STAND({w:{a:[91,92]}, w2:{a:[88,89]}}),
+     STAND({p:[150,89], f:{a:[92,92]}, f2:{a:[88,88]}, w:{a:[91,92]}, w2:{a:[88,89]}, ft:[38,38]})]},
+  lungeWalk:{ms:1300, props:{db:"both"}, keys:[
+     Q({p:[151,103], sp:-90, hd:-90, f:[188,177], f2:[114,177], w:{a:[92,93]}, w2:{a:[88,90]}, ft:[0,25]}),
+     Q({p:[151,137], sp:-87, hd:-90, f:[188,177], f2:[114,177], w:{a:[93,94]}, w2:{a:[89,91]}, ft:[0,25]})]},
+  cableCrunch:{ms:1500, props:{cable:[150,-25]}, keys:[
+     Q({p:[160,134], sp:-95, hd:-95, f:[126,175], f2:[121,175], w:[162,72], w2:[158,72], ft:[-90,-90]}),
+     Q({p:[156,136], sp:-25, hd:40, f:[126,175], f2:[121,175], w:[206,118], w2:[202,118], ft:[-90,-90]})]},
+  dip:{ms:1400, props:{lines:[[124,108,182,108,6],[132,110,132,183,5]]}, keys:[
+     Q({p:[150,106], sp:-91, hd:-90, f:{a:[112,176]}, f2:{a:[108,172]}, w:[154,104], w2:[150,104]}),
+     Q({p:[140,131], sp:-80, hd:-84, f:{a:[118,184]}, f2:{a:[114,180]}, w:[154,104], w2:[150,104]})]},
+  curl:{ms:1300, props:{db:"both"}, hold:.12, keys:[ STAND({w:{a:[92,93]}, w2:{a:[88,89]}}), STAND({w:{a:[93,-62]}, w2:{a:[89,-66]}}) ]},
+  pushdown:{ms:1300, props:{cable:[184,-4]}, keys:[
+     STAND({sp:-84, hd:-86, w:{a:[96,-35]}, w2:{a:[92,-39]}}), STAND({sp:-84, hd:-86, w:{a:[96,84]}, w2:{a:[92,80]}})]},
+  overheadExt:{ms:1400, props:{cable:[95,176]}, keys:[
+     Q({p:[150,100], sp:-65, hd:-58, f:[176,177], f2:[126,177], w:{a:[-72,160]}, w2:{a:[-76,156]}}),
+     Q({p:[150,100], sp:-65, hd:-58, f:[176,177], f2:[126,177], w:{a:[-70,-68]}, w2:{a:[-74,-72]}})]},
+  circuit:{seq:[["Pull-ups","pullup"],["Push-ups","pushup"],["Goblet squats","goblet"],["Plank","plank"]], each:3900},
+};
 function stillTime(name){ let a=ANIM[name]; if(!a) return 0; if(a.seq) a=ANIM[a.seq[0][1]]; return a.fn ? a.ms*.3 : a.ms*.95; }
 function paintThumbs(){
   document.querySelectorAll("canvas.thumb").forEach(cv=>renderPose(cv, cv.dataset.anim, stillTime(cv.dataset.anim)));
