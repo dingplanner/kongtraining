@@ -128,6 +128,8 @@ button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
 .section{display:flex;flex-direction:column}
 .sechead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-bottom:10px}
 .grp{padding:16px 0 6px}
+.station{display:flex;align-items:center;gap:8px;font-size:.75rem;font-weight:600;color:var(--accent);padding:12px 0 2px}
+.station::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--accent)}
 .row{display:flex;align-items:center;gap:14px;padding:8px 0;border-top:1px solid var(--line)}
 .grp + .row{border-top:0}
 .row canvas{width:64px;height:48px;border-radius:12px;background:var(--surface);border:1px solid var(--line);flex:none}
@@ -335,7 +337,7 @@ details.guide .inner b{color:var(--ink);font-weight:600}
    Pose points: h head, s shoulder, p hip, e/w near elbow/hand, k/f near knee/foot; e2,w2,k2,f2 = far limbs. */
 const ANIM_BY_NAME = {
   "Dumbbell bench press":"benchPress","Incline dumbbell press":"inclinePress","Dumbbell floor press":"floorPress","Lat pulldown":"latPulldown",
-  "Seated cable row":"cableRow","Cable lateral raise":"cableLateral","Couch hip thrust":"hipThrust","Hip thrust":"hipThrustBar","Face pull":"facePull","Assisted pull-up":"pullup",
+  "Seated cable row":"cableRow","Cable curl":"cableCurl","Leg press calf raise":"legPressCalf","Cable lateral raise":"cableLateral","Couch hip thrust":"hipThrust","Hip thrust":"hipThrustBar","Face pull":"facePull","Assisted pull-up":"pullup",
   "Feet-elevated push-ups":"pushupFeetUp","Overhead dumbbell extension":"overheadExtDB","Dumbbell curl":"curl","Romanian deadlift":"rdl",
   "Dumbbell split squat":"lungeWalk","Single-leg Romanian deadlift":"slRdl",
   "Arm circles":"armCircles","Leg swings":"legSwing","Bodyweight squats":"squat","Lunge with twist":"lunge","Dead hang":"deadHang",
@@ -816,6 +818,13 @@ const ANIM = {
   hipThrustBar:{ms:1400, face:-1, hold:.18, props:{bb:{r:15}, chair:[152,226,140]}, keys:[
      Q({p:[118,160], sp:-37, hd:-36, f:[80,177], f2:[75,177], kb:-1, kb2:-1, w:[120,146], w2:[116,146]}),
      Q({p:[111,128], sp:0, hd:-30, f:[80,177], f2:[75,177], kb:-1, kb2:-1, w:[114,114], w2:[110,114]})]},
+  // curl on a low cable: the cable runs from the pulley in front to the hands
+  cableCurl:{ms:1300, hold:.12, props:{cable:[206,174], lines:[[212,40,212,183,5]]}, keys:[
+     STAND({w:{a:[92,86]}, w2:{a:[88,82]}}), STAND({w:{a:[93,-62]}, w2:{a:[89,-66]}})]},
+  // calf raise on the leg press: legs stay straight, only the ankles move
+  legPressCalf:{ms:1200, props:{pads:[[52,104,114,152,12],[106,153,140,153,11]], lines:[[96,160,96,183,5],[132,160,132,183,5],[150,150,222,96,4]], plate:1}, keys:[
+     Q({p:[120,140], sp:-143, hd:-128, f:{a:[-33,-33]}, f2:{a:[-35,-35]}, w:[122,150], w2:[118,150], ft:[-15,-15]}),
+     Q({p:[120,140], sp:-143, hd:-128, f:{a:[-33,-33]}, f2:{a:[-35,-35]}, w:[122,150], w2:[118,150], ft:[30,30]})]},
   circuit:{seq:[["Pull-ups","pullup"],["Push-ups","pushup"],["Goblet squats","goblet"],["Plank","plank"]], each:3900},
 };
 function stillTime(name){ let a=ANIM[name]; if(!a) return 0; if(a.seq) a=ANIM[a.seq[0][1]]; return a.fn ? a.ms*.3 : a.ms*.95; }
@@ -856,12 +865,12 @@ const ORDER = ["U1","L1","U2","L2"];
 const RIR = " Stop when you have 1–2 good reps left.";
 const DAY = {
   U1G:{title:"Upper 1", list:[
-    {name:"Dumbbell bench press", sets:3, target:"8–10 reps", rest:120, perDb:true, cue:"Shoulder blades pinched together, feet flat. Lower the dumbbells to the sides of your chest over 2 seconds, press up."+RIR},
-    {name:"Lat pulldown", sets:3, target:"8–12 reps", rest:90, cue:"Hands a bit wider than shoulders. Lean back slightly and pull the bar to your upper chest by driving your elbows down. Control it up."},
-    {name:"Seated cable row", sets:3, target:"10–12 reps", rest:90, cue:"Sit tall, slight knee bend. Pull the handle to your belly button and squeeze your shoulder blades. Don't rock your body."},
-    {name:"Seated dumbbell shoulder press", sets:2, target:"8–12 reps", rest:90, perDb:true, cue:"Back flat on the bench. Lower to ear level and press up without clanking the dumbbells."},
-    {name:"Cable lateral raise", sets:3, target:"12–15 reps", rest:60, cue:"Lead with your elbow and raise to shoulder height. Side delts make your shoulders look wider and your waist smaller. Do both sides, then log the set."},
-    {superset:[
+    {st:"Bench + dumbbells", name:"Dumbbell bench press", sets:3, target:"8–10 reps", rest:120, perDb:true, cue:"Shoulder blades pinched together, feet flat. Lower the dumbbells to the sides of your chest over 2 seconds, press up."+RIR+""},
+    {st:"Bench + dumbbells", name:"Seated dumbbell shoulder press", sets:2, target:"8–12 reps", rest:90, perDb:true, cue:"Same bench, back rest straight up. Back flat, lower to ear level and press up without clanking the dumbbells."},
+    {st:"Cables", name:"Lat pulldown", sets:3, target:"8–12 reps", rest:90, cue:"Hands a bit wider than shoulders. Lean back slightly and pull the bar to your upper chest by driving your elbows down. Control it up."},
+    {st:"Cables", name:"Seated cable row", sets:3, target:"10–12 reps", rest:90, cue:"Sit tall, slight knee bend. Pull the handle to your belly button and squeeze your shoulder blades. Don't rock your body."},
+    {st:"Cables", name:"Cable lateral raise", sets:3, target:"12–15 reps", rest:60, cue:"Lead with your elbow and raise to shoulder height. Side delts make your shoulders look wider and your waist smaller. Do both sides, then log the set."},
+    {st:"Cables", superset:[
       {name:"EZ-bar curl", target:"10–12 reps", cue:"Elbows pinned to your sides. No swinging."},
       {name:"Rope pushdown", target:"10–12 reps", cue:"Elbows tucked. Spread the rope apart at the bottom and squeeze."}], rounds:2, rest:60},
   ]},
@@ -876,12 +885,12 @@ const DAY = {
       {name:"Diamond push-ups", target:"8–15 reps", bw:true, cue:"Hands close together under your chest. Works the triceps. Drop to your knees if needed."}], rounds:2, rest:60},
   ]},
   L1G:{title:"Lower 1", list:[
-    {name:"Leg press", sets:3, target:"8–12 reps", rest:120, cue:"Feet shoulder-width in the middle of the platform. Lower until your knees reach about 90°, push through your whole foot, don't lock your knees."+RIR},
-    {name:"Romanian deadlift", sets:3, target:"8–10 reps", rest:120, cue:"Barbell or dumbbells close to your legs. Push your hips back with a flat back until you feel a strong hamstring stretch, then stand tall. Light weight until the form is perfect."},
-    {name:"Walking lunges", sets:2, target:"10 per leg", rest:90, perDb:true, cue:"Dumbbells at your sides. Long steps, back knee almost touches the floor, front knee tracks over your toes."},
-    {name:"Leg curl", sets:3, target:"10–12 reps", rest:60, cue:"Curl all the way and lower over 3 seconds. Hips stay pressed into the pad."},
-    {name:"Standing calf raise", sets:3, target:"12–15 reps", rest:60, cue:"Full stretch at the bottom, pause and squeeze at the top."},
-    {name:"Cable crunch", sets:2, target:"12–15 reps", rest:60, cue:"Kneel facing the cable, rope by your head. Crunch your ribs toward your hips without pulling with your arms."},
+    {st:"Machines", name:"Leg press", sets:3, target:"8–12 reps", rest:120, cue:"Feet shoulder-width in the middle of the platform. Lower until your knees reach about 90°, push through your whole foot, don't lock your knees."+RIR+""},
+    {st:"Machines", name:"Leg press calf raise", sets:3, target:"12–15 reps", rest:60, cue:"Stay on the leg press. Legs straight, balls of your feet on the bottom edge of the platform. Push with your toes, pause, then let your heels come back for a full stretch.", q:"leg press calf raise"},
+    {st:"Dumbbells", name:"Dumbbell Romanian deadlift", sets:3, target:"8–10 reps", rest:120, perDb:true, cue:"Dumbbells close to your legs. Push your hips back with a flat back until you feel a strong hamstring stretch, then stand tall. Light weight until the form is perfect."},
+    {st:"Dumbbells", name:"Walking lunges", sets:2, target:"10 per leg", rest:90, perDb:true, cue:"Same dumbbells, find some open floor. Long steps, back knee almost touches the floor, front knee tracks over your toes."},
+    {st:"Machines", name:"Leg curl", sets:3, target:"10–12 reps", rest:60, cue:"Curl all the way and lower over 3 seconds. Hips stay pressed into the pad."},
+    {st:"Cables", name:"Cable crunch", sets:2, target:"12–15 reps", rest:60, cue:"Kneel facing the cable, rope by your head. Crunch your ribs toward your hips without pulling with your arms."},
   ]},
   L1H:{title:"Lower 1", list:[
     {name:"Goblet squat", sets:3, target:"10–15 reps", lb:true, cue:"Hold a dumbbell at your chest. 3 seconds down, chest up, knees out, full depth."+RIR, q:"dumbbell goblet squat"},
@@ -892,14 +901,14 @@ const DAY = {
     {name:"Hanging knee raises", sets:2, target:"10–15 reps", bw:true, cue:"No swinging. Curl your knees to your chest and lower slowly."},
   ]},
   U2G:{title:"Upper 2", list:[
-    {name:"Assisted pull-up", sets:3, target:"6–10 reps", rest:120, assist:true, cue:"The weight is help, so a lower number is harder. Full hang, chin over the bar. Can do 10 without help? Switch to regular pull-ups.", q:"assisted pull up machine"},
-    {name:"Incline dumbbell press", sets:3, target:"8–12 reps", rest:120, perDb:true, cue:"Bench at about 30°. Lower to the top of your chest, press up and slightly in. Builds the upper chest."+RIR},
-    {name:"One-arm dumbbell row", sets:3, target:"10–12 per arm", rest:90, perDb:true, cue:"Hand and knee on the bench, flat back. Pull the dumbbell to your hip and squeeze. Both arms, then log the set."},
-    {name:"Assisted dip", sets:2, target:"8–12 reps", rest:90, assist:true, cue:"Lower number is harder. Stay upright and lower until your elbows reach 90°."},
-    {name:"Face pull", sets:2, target:"12–15 reps", rest:60, cue:"Rope at face height. Pull it toward your forehead with your elbows high and wide. Strengthens the upper back for better posture.", q:"cable face pull"},
-    {name:"Cable lateral raise", sets:2, target:"12–15 reps", rest:60, cue:"Lead with your elbow to shoulder height. Both sides, then log the set."},
-    {superset:[
-      {name:"Incline dumbbell curl", target:"10–12 reps", perDb:true, cue:"Bench at about 45°. Arms hang straight back, curl without moving your elbows."},
+    {st:"Bench + dumbbells", name:"Incline dumbbell press", sets:3, target:"8–12 reps", rest:120, perDb:true, cue:"Bench at about 30°. Lower to the top of your chest, press up and slightly in. Builds the upper chest."+RIR+""},
+    {st:"Bench + dumbbells", name:"One-arm dumbbell row", sets:3, target:"10–12 per arm", rest:90, perDb:true, cue:"Lay the same bench flat. Hand and knee on the bench, flat back. Pull the dumbbell to your hip and squeeze. Both arms, then log the set."},
+    {st:"Machines", name:"Assisted pull-up", sets:3, target:"6–10 reps", rest:120, assist:true, cue:"The weight is help, so a lower number is harder. Full hang, chin over the bar. Can do 10 without help? Switch to regular pull-ups.", q:"assisted pull up machine"},
+    {st:"Machines", name:"Assisted dip", sets:2, target:"8–12 reps", rest:90, assist:true, cue:"Same machine as the pull-ups. Lower number is harder. Stay upright and lower until your elbows reach 90°."},
+    {st:"Cables", name:"Face pull", sets:2, target:"12–15 reps", rest:60, cue:"Rope at face height. Pull it toward your forehead with your elbows high and wide. Strengthens the upper back for better posture.", q:"cable face pull"},
+    {st:"Cables", name:"Cable lateral raise", sets:2, target:"12–15 reps", rest:60, cue:"Lead with your elbow to shoulder height. Both sides, then log the set."},
+    {st:"Cables", superset:[
+      {name:"Cable curl", target:"10–12 reps", cue:"Low cable with a straight or EZ handle. Elbows pinned to your sides, curl up, lower slowly.", q:"cable bicep curl"},
       {name:"Overhead cable extension", target:"10–12 reps", cue:"Face away from a low cable, rope behind your head. Straighten your arms overhead, elbows pointing forward."}], rounds:2, rest:60},
   ]},
   U2H:{title:"Upper 2", list:[
@@ -913,13 +922,13 @@ const DAY = {
       {name:"Overhead dumbbell extension", target:"10–12 reps", lb:true, cue:"Hold one dumbbell overhead with both hands. Lower it behind your head, elbows pointing up, then straighten."}], rounds:2, rest:60},
   ]},
   L2G:{title:"Lower 2", list:[
-    {name:"Bulgarian split squat", sets:3, target:"8–10 per leg", rest:90, perDb:true, cue:"Back foot on the bench, dumbbells in hand. Drop straight down, front heel stays planted. Both legs, then log the set."+RIR, q:"dumbbell bulgarian split squat"},
-    {name:"Hip thrust", sets:3, target:"8–12 reps", rest:120, cue:"Upper back on the bench, bar or machine pad across your hips. Drive up until your body is flat, chin tucked, squeeze your glutes for a second.", q:"barbell hip thrust"},
-    {name:"Leg extension", sets:2, target:"12–15 reps", rest:60, cue:"Pause one second at the top and lower slowly."},
-    {name:"Leg curl", sets:2, target:"10–12 reps", rest:60, cue:"Curl all the way and lower over 3 seconds."},
-    {name:"Standing calf raise", sets:3, target:"12–15 reps", rest:60, cue:"Full stretch at the bottom, pause and squeeze at the top."},
-    {name:"Hanging knee raises", sets:2, target:"10–15 reps", rest:60, bw:true, cue:"No swinging. Curl your knees to your chest and lower slowly."},
-    {name:"Plank", sets:2, target:"45 seconds", bw:true, cue:"Squeeze glutes and abs. Straight line from head to heels.", timed:45},
+    {st:"Bench + dumbbells", name:"Bulgarian split squat", sets:3, target:"8–10 per leg", rest:90, perDb:true, cue:"Back foot on the bench, dumbbells in hand. Drop straight down, front heel stays planted. Both legs, then log the set."+RIR+"", q:"dumbbell bulgarian split squat"},
+    {st:"Bench + dumbbells", name:"Hip thrust", sets:3, target:"8–12 reps", rest:120, cue:"Same bench. Upper back on the bench, bar across your hips. Drive up until your body is flat, chin tucked, squeeze your glutes for a second.", q:"barbell hip thrust"},
+    {st:"Machines", name:"Leg extension", sets:2, target:"12–15 reps", rest:60, cue:"Pause one second at the top and lower slowly."},
+    {st:"Machines", name:"Leg curl", sets:2, target:"10–12 reps", rest:60, cue:"Curl all the way and lower over 3 seconds."},
+    {st:"Machines", name:"Standing calf raise", sets:3, target:"12–15 reps", rest:60, cue:"Full stretch at the bottom, pause and squeeze at the top."},
+    {st:"Bar + floor", name:"Hanging knee raises", sets:2, target:"10–15 reps", rest:60, bw:true, cue:"No swinging. Curl your knees to your chest and lower slowly."},
+    {st:"Bar + floor", name:"Plank", sets:2, target:"45 seconds", bw:true, cue:"Squeeze glutes and abs. Straight line from head to heels.", timed:45},
   ]},
   L2H:{title:"Lower 2", list:[
     {name:"Bulgarian split squat", sets:3, target:"10–12 per leg", lb:true, perDb:true, cue:"Back foot on a couch or chair, dumbbells in hand. Drop straight down. Both legs, then log the set."+RIR, q:"dumbbell bulgarian split squat"},
@@ -988,8 +997,8 @@ function workSteps(id){
     if(!x.superset){ out.push({...x, kind:"work", weighted:W(x)}); return; }
     const [A,B] = x.superset;
     for(let r=1; r<=x.rounds; r++){
-      out.push({...A, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:W(A), logKey:A.name, logIdx:r-1, cue:A.cue+` Then go straight to ${B.name.toLowerCase()}.`});
-      out.push({...B, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:W(B), logKey:B.name, logIdx:r-1});
+      out.push({...A, st:x.st, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:W(A), logKey:A.name, logIdx:r-1, cue:A.cue+` Then go straight to ${B.name.toLowerCase()}.`});
+      out.push({...B, st:x.st, kind:"work", sets:1, round:r, rounds:x.rounds, superset:true, weighted:W(B), logKey:B.name, logIdx:r-1});
       if(r<x.rounds) out.push({name:"Rest", secs:x.rest, kind:"work", isRest:true, cue:`Superset rest. Next: ${A.name.toLowerCase()}, round ${r+1} of ${x.rounds}.`});
     }
   });
@@ -1274,6 +1283,7 @@ function planGuide(){
   ${sec("Your week",`<p>Lift 4 days: <b>Upper 1, Lower 1, Upper 2, Lower 2</b>, in that order. The app always suggests the next one.</p>
     <p>Example: Mon Upper 1, Tue Lower 1, Thu Upper 2, Fri Lower 2. Any 4 days work, but try not to lift 3 days in a row.</p>
     <p>Every muscle gets trained twice a week, which builds muscle better than once. Each day has a gym and a home version, so a missed gym trip never breaks the week.</p>
+    <p>At the gym, exercises are grouped by station (bench and dumbbells, machines, cables), so you finish everything at the bench before moving on and don't have to wait for it again later.</p>
     <p>Other days: walk, play sport, or do the optional easy run. Take at least one full rest day.</p>`)}
   ${sec("How to get stronger",`<p><b>Stop each set with 1–2 good reps left.</b> Not to failure: you grow just as well and recover faster.</p>
     <p><b>Double progression.</b> Each exercise has a rep range like 8–12. Use the same weight until you hit the top on every set, then add 5 lb next time and start at the bottom of the range again. The app tracks this and tells you when.</p>
@@ -1312,7 +1322,7 @@ function home(){
   const sh=document.getElementById("sheet"); if(sh) sh.remove();
   const next = suggested(), id = curId(), steps = buildSteps(id), mins = minsFor(id);
   const work = pick==="M" ? CIRCUIT.map(x=>({...x, sets:3, target:x.timed?"30 sec":x.target}))
-    : DAY[id].list.flatMap(x=>x.superset ? x.superset.map((y,i)=>({...y, sets:x.rounds, target:`${y.target}, superset with ${x.superset[1-i].name.toLowerCase()}`})) : [x]);
+    : DAY[id].list.flatMap(x=>x.superset ? x.superset.map((y,i)=>({...y, st:x.st, sets:x.rounds, target:`${y.target}, superset with ${x.superset[1-i].name.toLowerCase()}`})) : [x]);
   const today = new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
   const mon = isoDay(mondayOf(new Date())), weekCount = sessionsIn(mon), goal = weekGoal(), streak = weekStreak();
   const row = s => `<div class="row"><canvas class="thumb" data-anim="${ANIM_BY_NAME[s.name]||""}" aria-hidden="true"></canvas>
@@ -1343,7 +1353,7 @@ function home(){
    ${weighCard()}
    <div class="section"><div class="sechead"><h3>In this session</h3><span class="muted small">About ${mins} min</span></div>
      ${grp("Warm-up", steps.filter(s=>s.kind==="warm"))}
-     <p class="grp">${pick==="M"?"Circuit, 3 rounds":"Workout"}</p>${work.map(row).join("")}
+     <p class="grp">${pick==="M"?"Circuit, 3 rounds":"Workout"}</p>${work.map((x,k)=>(x.st&&x.st!==(work[k-1]||{}).st?`<p class="station">${esc(x.st)}</p>`:"")+row(x)).join("")}
      ${grp("Cool-down", steps.filter(s=>s.kind==="cool"))}</div>
    ${planGuide()}
    ${historyBlock()}
@@ -1528,7 +1538,7 @@ function draw(){
    <div class="playtop">
      <button class="close" onclick="askEnd()" aria-label="End workout">
        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
-     <span class="phase">${kinds[s.kind]}, ${pos} of ${inKind.length}</span>
+     <span class="phase">${kinds[s.kind]}, ${pos} of ${inKind.length}${s.st?` · ${esc(s.st)}`:""}</span>
      <span style="width:40px"></span>
    </div>
    <div class="stage player-stage"><canvas id="demo" data-anim="${ANIM_BY_NAME[s.name]||""}" role="img" aria-label="Animated demo of ${esc(s.name)}"></canvas>
