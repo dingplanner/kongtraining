@@ -154,6 +154,8 @@ details.grpd .row canvas{background:var(--surface-2)}
 .badge-l.q{color:var(--warm)}
 .badge-l.r{color:var(--run)}
 .badge-l.g{color:var(--ink)}
+.rm{background:none;border:0;color:var(--danger);font-weight:600;font-size:.8125rem;padding:6px 0 0;min-height:32px;cursor:pointer}
+.sheet .btn.btn-remove{background:var(--surface-2);color:var(--danger)}
 .morebtn{background:none;border:0;color:var(--accent);font-weight:600;padding:12px 0;cursor:pointer;align-self:flex-start;font-size:.9375rem}
 
 /* stage (animated figure) */
@@ -334,13 +336,13 @@ details.guide .inner b{color:var(--ink);font-weight:600}
    Pose points: h head, s shoulder, p hip, e/w near elbow/hand, k/f near knee/foot; e2,w2,k2,f2 = far limbs. */
 const ANIM_BY_NAME = {
   "Dumbbell bench press":"benchPress","Incline dumbbell press":"inclinePress","Dumbbell floor press":"floorPress","Lat pulldown":"latPulldown",
-  "Seated cable row":"cableRow","Couch hip thrust":"hipThrust","Hip thrust":"hipThrust","Face pull":"facePull","Assisted pull-up":"pullup",
-  "Feet-elevated push-ups":"pushup","Overhead dumbbell extension":"overheadExtDB","Dumbbell curl":"curl","Romanian deadlift":"rdl",
-  "Dumbbell split squat":"lunge","Single-leg Romanian deadlift":"rdl",
+  "Seated cable row":"cableRow","Cable lateral raise":"cableLateral","Couch hip thrust":"hipThrust","Hip thrust":"hipThrustBar","Face pull":"facePull","Assisted pull-up":"pullup",
+  "Feet-elevated push-ups":"pushupFeetUp","Overhead dumbbell extension":"overheadExtDB","Dumbbell curl":"curl","Romanian deadlift":"rdl",
+  "Dumbbell split squat":"lungeWalk","Single-leg Romanian deadlift":"slRdl",
   "Arm circles":"armCircles","Leg swings":"legSwing","Bodyweight squats":"squat","Lunge with twist":"lunge","Dead hang":"deadHang",
   "Push-ups":"pushup","Goblet squat":"goblet","Dumbbell shoulder press":"press","Bulgarian split squat":"bulgarian",
   "Diamond push-ups":"pushup","Burpees":"burpee","Pull-ups":"pullup","One-arm dumbbell row":"row","Chin-ups":"pullup",
-  "Dumbbell Romanian deadlift":"rdl","Hanging knee raises":"kneeRaise","Plank":"plank","Dumbbell lateral raise":"lateral","Mountain climbers":"climber","Quick circuit":"circuit","Rest":"rest","Incline walk":"walk","Leg press":"legPress","Barbell Romanian deadlift":"rdl","Walking lunges":"lungeWalk","Leg extension":"legExt","Leg curl":"legCurl","Standing calf raise":"calf","Cable crunch":"cableCrunch","Seated dumbbell shoulder press":"press","Assisted dip":"dip","EZ-bar curl":"curl","Rope pushdown":"pushdown","Cable lateral raise":"lateral","Incline dumbbell curl":"curl","Overhead cable extension":"overheadExt","Hammer curl":"curl","Easy jog":"run","Easy run":"run","Long easy run":"run","Warm-up jog":"run","Cool-down jog":"run","Comfortably hard":"run","Fast stride":"sprint","Walk":"walk",
+  "Dumbbell Romanian deadlift":"rdl","Hanging knee raises":"kneeRaise","Plank":"plank","Dumbbell lateral raise":"lateral","Mountain climbers":"climber","Quick circuit":"circuit","Rest":"rest","Incline walk":"walk","Leg press":"legPress","Barbell Romanian deadlift":"rdl","Walking lunges":"lungeAlt","Leg extension":"legExt","Leg curl":"legCurl","Standing calf raise":"calf","Cable crunch":"cableCrunch","Seated dumbbell shoulder press":"seatedPress","Assisted dip":"dip","EZ-bar curl":"curlBar","Rope pushdown":"pushdown","Cable lateral raise":"cableLateral","Incline dumbbell curl":"inclineCurl","Overhead cable extension":"overheadExt","Hammer curl":"curl","Easy jog":"run","Easy run":"run","Long easy run":"run","Warm-up jog":"run","Cool-down jog":"run","Comfortably hard":"run","Fast stride":"sprint","Walk":"walk",
   "Doorway chest stretch":"chest","Lat stretch":"lat","Hamstring stretch":"hamstring","Hip flexor stretch":"hipFlexor",
   "Standing quad stretch":"quad","Child's pose":"child",
 };
@@ -377,19 +379,27 @@ function ik(r,t,L1,L2,sg){
   return [m,add2(m,dirv(ang(m,tt)),L2)];
 }
 /* Key -> skeleton description (angles + targets). Cached per key object. */
+/* Where each limb attaches. Side view: all at the pelvis/shoulder point. Front view: shoulders 17 apart from
+   the spine on each side, hips 7. "Near" limbs are the ones on the right of the screen. */
+function rootOf(e,P,s,view){
+  if(view!=="front") return e[0]==="f" ? P : s;
+  const d=dirv(ang(P,s)), n=[-d[1],d[0]];                       // n points to screen-right when upright
+  const side=e.endsWith("2")?-1:1;                               // near = right of screen
+  return e[0]==="f" ? add2(P,n,7*side) : add2(add2(s,n,17*side),d,-3);
+}
 const KEYC=new WeakMap();
 function prep(k0){
   if(KEYC.has(k0)) return KEYC.get(k0);
-  const k=fill(k0), o={p:k.p, sp:ang(k.p,k.s), hd:ang(k.s,k.h), ft:k.ft||[0,0], L:{}};
-  for(const [m,e,r] of LIMB_DEF){ const bend=cross(k[r],k[m],k[e])/((dist(k[r],k[m])*dist(k[r],k[e]))||1);   // sine of the bend angle
-    o.L[e]={up:ang(k[r],k[m]), lo:ang(k[m],k[e]), end:k[e], bend, hi:!!(k.hi&&k.hi.includes(e))}; }
+  const k=fill(k0), o={p:k.p, sp:ang(k.p,k.s), hd:ang(k.s,k.h), ft:k.ft||[0,0], view:k.view, L:{}};
+  for(const [m,e] of LIMB_DEF){ const R=rootOf(e,k.p,k.s,k.view), bend=cross(R,k[m],k[e])/((dist(R,k[m])*dist(R,k[e]))||1);   // sine of the bend angle
+    o.L[e]={up:ang(R,k[m]), lo:ang(k[m],k[e]), end:k[e], bend, hi:!!(k.hi&&k.hi.includes(e))}; }
   KEYC.set(k0,o); return o;
 }
 function build(A,B,v,face,slide){
   const P=lerp2(A.p,B.p,v), sp=lerpA(A.sp,B.sp,v), hd=lerpA(A.hd,B.hd,v);
-  const s=add2(P,dirv(sp),BONE.spine), h=add2(s,dirv(hd),BONE.neck), out={p:P,s,h,ft:[A.ft[0]+(B.ft[0]-A.ft[0])*v, A.ft[1]+(B.ft[1]-A.ft[1])*v]};
+  const s=add2(P,dirv(sp),BONE.spine), h=add2(s,dirv(hd),BONE.neck), out={p:P,s,h,view:A.view,ft:[A.ft[0]+(B.ft[0]-A.ft[0])*v, A.ft[1]+(B.ft[1]-A.ft[1])*v]};
   for(const [m,e,r,u,l,def] of LIMB_DEF){
-    const a=A.L[e], b=B.L[e], root=r==="p"?P:s, planted=dist(a.end,b.end)<4 || (slide&&slide.includes(e));
+    const a=A.L[e], b=B.L[e], root=rootOf(e,P,s,A.view), planted=dist(a.end,b.end)<4 || (slide&&slide.includes(e));
     if(planted){ const bb=Math.abs(a.bend)>=Math.abs(b.bend)?a.bend:b.bend, sg=a.hi&&b.hi?"up":Math.abs(bb)>.12?Math.sign(bb):def*face;
       [out[m],out[e]]=ik(root,lerp2(a.end,b.end,v),BONE[u],BONE[l],sg); }
     else { out[m]=add2(root,dirv(lerpA(a.up,b.up,v)),BONE[u]); out[e]=add2(out[m],dirv(lerpA(a.lo,b.lo,v)),BONE[l]);
@@ -500,6 +510,12 @@ function drawDumbbell(c,pt,COL,horiz){
   c.fillStyle=g; c.beginPath(); c.roundRect(pt[0]-14,pt[1]-7.5,8,15,2.5); c.roundRect(pt[0]+6,pt[1]-7.5,8,15,2.5); c.fill();
   c.fillStyle="rgba(255,255,255,.18)"; c.fillRect(pt[0]-13,pt[1]-6.5,6,1.4); c.fillRect(pt[0]+7,pt[1]-6.5,6,1.4);
 }
+function drawPlate(c,pt,r,COL){
+  const g=c.createRadialGradient(pt[0]-r*.3,pt[1]-r*.3,1,pt[0],pt[1],r); g.addColorStop(0,COL.metalHi); g.addColorStop(.7,COL.metalLo); g.addColorStop(1,"#141417");
+  c.fillStyle=g; c.beginPath(); c.arc(pt[0],pt[1],r,0,Math.PI*2); c.fill();
+  c.strokeStyle="rgba(255,255,255,.12)"; c.lineWidth=1; c.beginPath(); c.arc(pt[0],pt[1],r*.62,0,Math.PI*2); c.stroke();
+  c.fillStyle=COL.metalHi; c.beginPath(); c.arc(pt[0],pt[1],Math.max(2,r*.2),0,Math.PI*2); c.fill();
+}
 function drawProps(c,pr,P,COL){
   const metal=(x1,y1,x2,y2,w)=>{ c.lineCap="round"; c.strokeStyle=COL.metalLo; c.lineWidth=w; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
     c.strokeStyle=COL.metalHi; c.lineWidth=w*.35; c.beginPath(); c.moveTo(x1,y1-w*.18); c.lineTo(x2,y2-w*.18); c.stroke(); };
@@ -516,6 +532,37 @@ function drawProps(c,pr,P,COL){
   if(pr.plate){ const dx=P.f[0]-P.k[0], dy=P.f[1]-P.k[1], L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L, nx=-uy, ny=ux, cx=P.f[0]+ux*6, cy=P.f[1]+uy*6;
     c.save(); c.translate(cx,cy); c.rotate(Math.atan2(ny,nx)); const g=c.createLinearGradient(0,-4,0,4); g.addColorStop(0,COL.metalHi); g.addColorStop(1,COL.metalLo);
     c.fillStyle=g; c.beginPath(); c.roundRect(-26,-4,52,8,3); c.fill(); c.restore(); }
+}
+/* ---------- front view ---------- */
+function drawTorsoFront(c,P,tone){
+  const d=dirv(ang(P.p,P.s)), L=dist(P.p,P.s), n=[-d[1],d[0]];
+  const prof=[[-.08,13],[.08,15.5],[.24,14.5],[.44,12.6],[.68,15.8],[.86,18.6],[.98,17.5],[1.06,9],[1.12,5]];   // [t, half width]
+  const Rt=prof.map(([t,w])=>add2(add2(P.p,d,t*L),n,w)), Lf=prof.map(([t,w])=>add2(add2(P.p,d,t*L),n,-w)).reverse(), ring=[...Rt,...Lf];
+  c.save(); c.beginPath(); c.moveTo((ring[0][0]+ring[1][0])/2,(ring[0][1]+ring[1][1])/2);
+  for(let i=1;i<=ring.length;i++){ const a=ring[i%ring.length], b=ring[(i+1)%ring.length]; c.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2); }
+  c.closePath(); c.fillStyle=tone[1]; c.fill(); c.clip();
+  const m=add2(P.p,d,L*.5), g=c.createLinearGradient(...add2(m,n,-19),...add2(m,n,19));
+  g.addColorStop(0,tone[0]); g.addColorStop(.35,tone[1]); g.addColorStop(.75,tone[1]); g.addColorStop(1,tone[2]);
+  c.fillStyle=g; c.fillRect(m[0]-60,m[1]-60,120,120);
+  // centre line and pec shading, very soft
+  c.globalAlpha=.16; c.strokeStyle=tone[2]; c.lineWidth=1.1; c.beginPath(); c.moveTo(...add2(P.p,d,L*.35)); c.lineTo(...add2(P.p,d,L*.8)); c.stroke();
+  [-1,1].forEach(sd=>{ c.beginPath(); const a=add2(add2(P.p,d,L*.66),n,sd*2), b=add2(add2(P.p,d,L*.64),n,sd*13); c.moveTo(...a); c.quadraticCurveTo(...add2(add2(P.p,d,L*.6),n,sd*8),...b); c.stroke(); });
+  c.restore();
+}
+function drawHeadFront(c,P,tone){
+  const a=ang(P.s,P.h), d=dirv(a);
+  shadeBody(c,chain([add2(P.s,d,0),add2(P.h,d,-6)],()=>9.5,3),tone);
+  c.save(); c.translate(P.h[0],P.h[1]); c.rotate(a+Math.PI/2);
+  const g=c.createRadialGradient(-3,-4,1,0,0,12.5); g.addColorStop(0,tone[0]); g.addColorStop(.55,tone[1]); g.addColorStop(1,tone[2]);
+  c.fillStyle=g; c.beginPath(); c.ellipse(0,-.5,8.8,11.2,0,0,Math.PI*2); c.fill();
+  c.fillStyle=tone[1]; [-1,1].forEach(sd=>{ c.beginPath(); c.ellipse(sd*8.8,0,1.8,3.2,0,0,Math.PI*2); c.fill(); });   // ears
+  c.restore();
+}
+function drawFootFront(c,ankle,side,tone){ const q=chain([ankle,[ankle[0]+side*3,ankle[1]+5]],t=>8-t*1.5,3); shadeBody(c,q,tone); }
+function drawDumbbellEnd(c,pt,COL){   // handle pointing at the viewer: we see the round end of the plates
+  const g=c.createRadialGradient(pt[0]-2,pt[1]-2,1,pt[0],pt[1],8.5); g.addColorStop(0,COL.metalHi); g.addColorStop(1,"#18181b");
+  c.fillStyle=g; c.beginPath(); c.arc(pt[0],pt[1],8,0,Math.PI*2); c.fill();
+  c.fillStyle=COL.metalLo; c.beginPath(); c.arc(pt[0],pt[1],2.6,0,Math.PI*2); c.fill();
 }
 /* Draws one frame. Logical space 300 x 215 (y shifted 25 so the bar fits). Fits by height and centres. */
 function renderPose(cv, name, T){
@@ -537,6 +584,17 @@ function renderPose(cv, name, T){
   { const fg=c.createLinearGradient(-60,0,360,0); fg.addColorStop(0,"rgba(0,0,0,0)"); fg.addColorStop(.5,COL.floor); fg.addColorStop(1,"rgba(0,0,0,0)");
     c.strokeStyle=fg; c.lineWidth=.8; c.beginPath(); c.moveTo(-60,183.5); c.lineTo(360,183.5); c.stroke(); }
   drawProps(c,pr,P,COL);
+  if(P.view==="front"){
+    const lp=rootOf("f",P.p,P.s,"front"), rp=rootOf("f2",P.p,P.s,"front"), ls=rootOf("w",P.p,P.s,"front"), rs=rootOf("w2",P.p,P.s,"front");
+    drawLimb(c,rp,P.k2,P.f2,"leg",NEAR); drawFootFront(c,P.f2,-1,NEAR);
+    drawLimb(c,lp,P.k,P.f,"leg",NEAR); drawFootFront(c,P.f,1,NEAR);
+    drawTorsoFront(c,P,NEAR); drawHeadFront(c,P,NEAR);
+    drawLimb(c,rs,P.e2,P.w2,"arm",NEAR); drawHand(c,P.w2,P.e2,NEAR);
+    drawLimb(c,ls,P.e,P.w,"arm",NEAR); drawHand(c,P.w,P.e,NEAR);
+    if(pr.db==="both") drawDumbbellEnd(c,P.w2,COL);
+    if(pr.db) drawDumbbellEnd(c,P.w,COL);
+    return;
+  }
   // far side (behind the body)
   drawLimb(c,P.s,P.e2,P.w2,"arm",FAR); drawHand(c,P.w2,P.e2,FAR);
   if(pr.db==="both") drawDumbbell(c,P.w2,COL);
@@ -546,6 +604,7 @@ function renderPose(cv, name, T){
   drawHead(c,P,face,NEAR);
   drawLimb(c,P.s,P.e,P.w,"arm",NEAR); drawHand(c,P.w,P.e,NEAR);
   if(pr.db) drawDumbbell(c,P.w,COL);
+  if(pr.bb) drawPlate(c,P.w,pr.bb.r,COL);
   if(caption){ c.setTransform(1,0,0,1,0,0); const d=window.devicePixelRatio||1;
     c.fillStyle=COL.hi; c.font=`600 ${13*d}px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif`;
     c.fillText(caption, 16*d, 26*d); }
@@ -581,13 +640,16 @@ function boundsFor(name){
    Floor: ankles at y 177. Pull-up bar: hands at y -20. */
 const D2R=Math.PI/180;
 function Q(o){
-  const p=o.p, s=add2(p,dirv(o.sp*D2R),BONE.spine), h=add2(s,dirv((o.hd??o.sp)*D2R),BONE.neck), k={p,s,h,ft:o.ft||[0,0],hi:o.hi};
+  const p=o.p, s=add2(p,dirv(o.sp*D2R),BONE.spine), h=add2(s,dirv((o.hd??o.sp)*D2R),BONE.neck), k={p,s,h,ft:o.ft||[0,0],hi:o.hi,view:o.view};
+  const F=o.view==="front", R=e=>rootOf(e,p,s,o.view);
   const limb=(spec,root,L1,L2,sg,m,e)=>{
     if(Array.isArray(spec)){ const [mm,ee]=ik(root,spec,BONE[L1],BONE[L2],sg); k[m]=mm; k[e]=ee; }
     else { k[m]=add2(root,dirv(spec.a[0]*D2R),BONE[L1]); k[e]=add2(k[m],dirv(spec.a[1]*D2R),BONE[L2]); } };
-  const far=(x,dx,da)=>Array.isArray(x)?[x[0]+dx,x[1]]:{a:[x.a[0]+da,x.a[1]+da]};
-  limb(o.f,p,"thigh","shin",o.kb??1,"k","f");      limb(o.f2??far(o.f,-6,4),p,"thigh","shin",o.kb2??o.kb??1,"k2","f2");
-  limb(o.w,s,"upper","fore",o.eb??-1,"e","w");     limb(o.w2??far(o.w,-4,-5),s,"upper","fore",o.eb2??o.eb??-1,"e2","w2");
+  // far side defaults: a small offset in side view, a mirror image in front view
+  const far=(x,dx,da,cx)=>F ? (Array.isArray(x)?[2*cx-x[0],x[1]]:{a:[180-x.a[0],180-x.a[1]]}) : (Array.isArray(x)?[x[0]+dx,x[1]]:{a:[x.a[0]+da,x.a[1]+da]});
+  const mir=v=>F?-v:v;
+  limb(o.f,R("f"),"thigh","shin",o.kb??1,"k","f");      limb(o.f2??far(o.f,-6,4,p[0]),R("f2"),"thigh","shin",o.kb2??mir(o.kb??1),"k2","f2");
+  limb(o.w,R("w"),"upper","fore",o.eb??-1,"e","w");     limb(o.w2??far(o.w,-4,-5,s[0]),R("w2"),"upper","fore",o.eb2??mir(o.eb??-1),"e2","w2");
   return k;
 }
 const STAND = o => Q({p:[150,96], sp:-90, hd:-90, f:[153,177], f2:[146,177], w:{a:[93,96]}, w2:{a:[87,92]}, ...o});
@@ -656,8 +718,14 @@ const ANIM = {
   child:{ms:2600, hold:.3, keys:[
      Q({p:[116,152], sp:17, hd:26, f:[112,176], f2:[109,176], w:[222,177], w2:[218,177], ft:[-90,-90]}),
      Q({p:[115,149.5], sp:15, hd:26, f:[112,176], f2:[109,176], w:[222,177], w2:[218,177], ft:[-90,-90]})]},
-  lateral:{ms:1300, props:{db:"both"}, keys:[
-     STAND({sp:-89, w:{a:[92,94]}, w2:{a:[88,90]}}), STAND({sp:-88, w:{a:[-4,0]}, w2:{a:[-10,-6]}})]},
+  // front view: arms rise out to the sides to shoulder height, elbows slightly bent and leading
+  lateral:{ms:1400, hold:.14, props:{db:"both"}, keys:[
+     Q({view:"front", p:[150,96], sp:-90, hd:-90, f:[157,177], w:{a:[84,92]}}),
+     Q({view:"front", p:[150,96], sp:-90, hd:-90, f:[157,177], w:{a:[-6,6]}})]},
+  // one arm at a time, cable from the low pulley on the other side, free hand on the machine
+  cableLateral:{ms:1400, hold:.14, props:{cable:[86,170], lines:[[80,20,80,183,6]]}, keys:[
+     Q({view:"front", p:[150,96], sp:-91, hd:-90, f:[157,177], w:{a:[100,124]}, w2:[100,92], eb2:1}),
+     Q({view:"front", p:[150,96], sp:-89, hd:-90, f:[157,177], w:{a:[-6,4]}, w2:[100,92], eb2:1})]},
   // hips slightly raised so the knee clears the floor as the thigh swings through vertical
   climber:{ms:560, fn:t=>{ const foot=(ph,dx)=>{ const c=Math.cos(ph), u=.5-.5*Math.sign(c)*Math.pow(Math.abs(c),.45);   // quick switch, time spent at the ends
        return [70+dx+u*72, 175-14*Math.sin(Math.PI*u)]; };
@@ -721,6 +789,34 @@ const ANIM = {
      Q({p:[152,98], sp:-95, hd:-93, f:[168,177], f2:[138,177], w:{a:[-172,-56]}, w2:{a:[-176,-60]}})]},
   overheadExtDB:{ms:1400, props:{db:true}, keys:[
      STAND({sp:-92, w:{a:[-84,150]}, w2:{a:[-88,146]}}), STAND({sp:-92, w:{a:[-84,-86]}, w2:{a:[-88,-90]}})]},
+  // seated on a bench with a back rest, feet flat, press from ear level to overhead
+  seatedPress:{ms:1200, props:{db:"both", chair:[114,166,140], pads:[[124,78,124,136,10]], lines:[[124,136,124,183,5]]}, keys:[
+     Q({p:[140,130], sp:-92, hd:-90, f:[184,177], f2:[178,177], w:{a:[100,-84]}, w2:{a:[94,-88]}}),
+     Q({p:[140,130], sp:-92, hd:-90, f:[184,177], f2:[178,177], w:{a:[-87,-89]}, w2:{a:[-91,-93]}})]},
+  // leaning back on an incline bench, arms hanging behind the body, curl without moving the elbows
+  inclineCurl:{ms:1300, props:{db:"both", pads:[[96,88,130,140,12],[118,142,154,142,11]], lines:[[124,148,124,183,5],[108,112,100,183,5]]}, keys:[
+     Q({p:[142,132], sp:-124, hd:-104, f:[186,177], f2:[180,177], w:{a:[96,96]}, w2:{a:[92,92]}}),
+     Q({p:[142,132], sp:-124, hd:-104, f:[186,177], f2:[180,177], w:{a:[96,-58]}, w2:{a:[92,-62]}})]},
+  // EZ bar: both hands on one bar, so we see the bar end and plate
+  curlBar:{ms:1300, props:{bb:{r:9}}, hold:.12, keys:[STAND({w:{a:[92,93]}, w2:{a:[88,89]}}), STAND({w:{a:[93,-62]}, w2:{a:[89,-66]}})]},
+  // feet on a bench, hands on the floor: the body slopes down toward the hands
+  pushupFeetUp:{ms:1150, hold:.12, props:{chair:[24,84,113]}, keys:[
+     Q({p:[140.6,119.4], sp:8.8, hd:12, f:[60.5,107], f2:[56,107], w:[190,177], w2:[186,177]}),
+     Q({p:[135.6,137.3], sp:22, hd:25, f:[60.5,107], f2:[56,107], w:[190,177], w2:[186,177]})]},
+  // stand on the far leg; the near leg reaches back in line with the torso as you hinge
+  slRdl:{ms:1500, props:{db:"both"}, keys:[
+     STAND({f:{a:[92,94]}, f2:[148,177], w:{a:[91,92]}, w2:{a:[88,89]}}),
+     Q({p:[138,100], sp:-6, hd:-12, f:{a:[174,176]}, f2:[148,177], w:{a:[90,91]}, w2:{a:[87,88]}})]},
+  // walking lunges: alternate legs, dumbbells at the sides
+  lungeAlt:{ms:1100, props:{db:"both"}, keys:[
+     STAND({w:{a:[92,93]}, w2:{a:[88,90]}}),
+     Q({p:[151,137], sp:-87, hd:-90, f:[188,177], f2:[114,177], w:{a:[93,94]}, w2:{a:[89,91]}, ft:[0,25]}),
+     STAND({w:{a:[92,93]}, w2:{a:[88,90]}}),
+     Q({p:[151,137], sp:-87, hd:-90, f:[114,177], f2:[188,177], w:{a:[93,94]}, w2:{a:[89,91]}, ft:[25,0]})]},
+  // barbell hip thrust: the plate sits at the hips
+  hipThrustBar:{ms:1400, face:-1, hold:.18, props:{bb:{r:15}, chair:[152,226,140]}, keys:[
+     Q({p:[118,160], sp:-37, hd:-36, f:[80,177], f2:[75,177], kb:-1, kb2:-1, w:[120,146], w2:[116,146]}),
+     Q({p:[111,128], sp:0, hd:-30, f:[80,177], f2:[75,177], kb:-1, kb2:-1, w:[114,114], w2:[110,114]})]},
   circuit:{seq:[["Pull-ups","pullup"],["Push-ups","pushup"],["Goblet squats","goblet"],["Plank","plank"]], each:3900},
 };
 function stillTime(name){ let a=ANIM[name]; if(!a) return 0; if(a.seq) a=ANIM[a.seq[0][1]]; return a.fn ? a.ms*.3 : a.ms*.95; }
@@ -866,7 +962,7 @@ let wakeLock = null, actx = null;
 
 const store = {
   get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  set(k,v){try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,JSON.stringify(v)); }catch(e){}}
 };
 
 function suggested(){ const i=ORDER.indexOf(store.get("lastDay")); return ORDER[(i+1)%ORDER.length]; }   // old A/B values start at Upper 1
@@ -975,7 +1071,7 @@ function unlogRun(){
 }
 function logRun(type){
   const p=runPlan(runWeek(),type), hist=getHistory();
-  hist.push({date:isoDay(new Date()), day:"R", title:p.title, mins:p.mins}); store.set("history", hist.slice(-200));
+  hist.push({id:Date.now(), date:isoDay(new Date()), day:"R", title:p.title, mins:p.mins}); store.set("history", hist.slice(-200));
   const dates=new Set(store.get("doneDates")||[]); dates.add(isoDay(new Date())); store.set("doneDates",[...dates].slice(-60));
   home();
 }
@@ -986,16 +1082,39 @@ function startRun(type){
   if(navigator.wakeLock){ navigator.wakeLock.request("screen").then(w=>wakeLock=w).catch(()=>{}); }
   enter();
 }
+/* Remove a workout logged today. Past days are locked. Puts back every saved value the workout changed;
+   if a later workout today changed the same value, that later workout inherits the older snapshot instead. */
+function removeEntry(idx){
+  const hist=getHistory(), e=hist[idx], today=isoDay(new Date());
+  if(!e || e.date!==today) return;
+  const later=hist.slice(idx+1).filter(x=>x.date===today && x.undo);
+  Object.entries(e.undo||{}).forEach(([k,v])=>{ const L=later.find(x=>k in x.undo); if(L) L.undo[k]=v; else store.set(k,v); });
+  hist.splice(idx,1); store.set("history",hist);
+  if(!hist.some(x=>x.date===today)){ const dates=new Set(store.get("doneDates")||[]); dates.delete(today); store.set("doneDates",[...dates]); }
+  pick=suggested(); home();
+}
+function askRemove(idx){
+  const e=getHistory()[idx]; if(!e || e.date!==isoDay(new Date())) return;
+  const el=document.createElement("div"); el.className="sheet-bg"; el.id="sheet";
+  el.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><h3 id="shT">Remove ${esc(e.title||nameOf(e.day))}?</h3>
+    <p>It won't count toward your week${e.undo?", and the weights, reps and records it saved go back to how they were":""}. You can only remove a workout on the day you did it.</p>
+    <button class="btn btn-remove" data-a="drop">Remove workout</button>
+    <button class="btn primary" data-a="keep">Keep it</button></div>`;
+  el.addEventListener("click",ev=>{ const a=ev.target.dataset&&ev.target.dataset.a; if(ev.target===el||a==="keep") el.remove(); else if(a==="drop"){ el.remove(); removeEntry(idx); } });
+  el.addEventListener("keydown",ev=>{ if(ev.key==="Escape") el.remove(); });
+  document.body.appendChild(el); el.querySelector("[data-a=keep]").focus();
+}
 let showAll = false;
 function historyBlock(){
-  const h = getHistory().slice().reverse();
+  const all = getHistory(), h = all.map((e,i)=>({...e,_i:i})).reverse(), today = isoDay(new Date());
   if(!h.length) return `<div class="section"><h3>History</h3><p class="muted small">Finish a workout and it shows up here with the date and which day you did.</p></div>`;
   const list = showAll ? h : h.slice(0,5);
   return `<div class="section"><div class="sechead"><h3>History</h3><span class="muted small">${h.length} ${h.length===1?"workout":"workouts"}</span></div>
     <div class="list hist">${list.map(e=>{
       const d = new Date(e.date+"T12:00:00");
       return `<div><span class="hl"><i class="badge-l ${e.day==="M"?"q":e.day==="R"?"r":/^L/.test(e.day)?"g":""}">${letterOf(e.day)}</i><span><b>${esc(e.title||nameOf(e.day))}</b><br><span class="muted small">${esc(d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}))}</span></span></span>
-        <span class="small">${e.mins} min${e.reps?`<br>${e.reps} reps`:""}</span></div>`;}).join("")}</div>
+        <span class="small">${e.mins} min${e.reps?`<br>${e.reps} reps`:""}${e.date===today?`<br><button class="rm" onclick="askRemove(${e._i})" aria-label="Remove ${esc(e.title||nameOf(e.day))}">Remove</button>`:""}</span></div>`;}).join("")}</div>
+    ${h.some(e=>e.date===today)?`<p class="small muted" style="padding-top:8px">You can remove today's workouts until midnight. After that they're locked in.</p>`:""}
     ${h.length>5?`<button class="morebtn" onclick="showAll=!showAll;home()">${showAll?"Show less":"Show all "+h.length}</button>`:""}</div>`;
 }
 /* ---------- weight check-ins ---------- */
@@ -1236,8 +1355,10 @@ function home(){
 }
 
 /* ---------- session ---------- */
+/* Before a workout first changes a saved value, remember what it was, so removing the workout can put it back. */
+function snapKey(k){ S.snap=S.snap||{}; if(!(k in S.snap)) S.snap[k]=store.get(k); }
 function start(){
-  S = {day:curId(), prev:{}, disp:{}, lb:null, steps:buildSteps(curId()), i:0, set:1, phase:"work", left:0, total:0, running:false, logs:{}, t:null, reps:0, t0:Date.now()};
+  S = {day:curId(), prev:{}, disp:{}, lb:null, steps:buildSteps(curId()), i:0, set:1, phase:"work", left:0, total:0, running:false, logs:{}, t:null, reps:0, t0:Date.now(), snap:{}};
   try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
   if(navigator.wakeLock){ navigator.wakeLock.request("screen").then(w=>wakeLock=w).catch(()=>{}); }
   scrollTo(0,0); enter();
@@ -1252,7 +1373,7 @@ function defaultLb(s){ if(!s.weighted) return null;
   if(today && idx>=0 && String(today[idx]||"").includes("×")) return parseFloat(today[idx]);
   const x=prevSet(s); return x && x.lb!=null ? x.lb : null; }
 function saveGymSet(s, idx, lb, reps){
-  const k=gymKey(s), today=isoDay(new Date()); let r=store.get(k);
+  const k=gymKey(s), today=isoDay(new Date()); snapKey(k); let r=store.get(k);
   if(!r || r.date!==today || !Array.isArray(r.sets)) r={date:today, sets:[]};
   r.sets[idx]={lb, reps}; store.set(k, r);
 }
@@ -1454,7 +1575,7 @@ function finish(){
   if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }
   if(S.day==="R"){
     const mins=Math.max(1,Math.round((Date.now()-S.t0)/60000)), hist=getHistory();
-    hist.push({date:isoDay(new Date()), day:"R", title:S.runTitle, mins:S.runMins}); store.set("history", hist.slice(-200));
+    hist.push({id:Date.now(), date:isoDay(new Date()), day:"R", title:S.runTitle, mins:S.runMins}); store.set("history", hist.slice(-200));
     const dates=new Set(store.get("doneDates")||[]); dates.add(isoDay(new Date())); store.set("doneDates",[...dates].slice(-60));
     $(`<div class="done-hero"><div class="done-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p class="eyebrow">Run complete</p><h1>${esc(S.runTitle)}</h1>
         <p class="muted">Stretch your calves and hamstrings, and drink some water.</p></div>
@@ -1466,6 +1587,7 @@ function finish(){
       <div class="dock"><div class="dock-in"><button class="btn primary" onclick="home()">Done</button></div></div>`);
     return;
   }
+  Object.keys(S.logs).forEach(k=>snapKey("log:"+k)); ["lastDay","lastDone","bests"].forEach(snapKey);
   Object.entries(S.logs).forEach(([k,v])=>store.set("log:"+k, v));
   const date = new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
   if(ORDER.includes(S.day.slice(0,2))) store.set("lastDay", S.day.slice(0,2));
@@ -1473,7 +1595,7 @@ function finish(){
   const dates = new Set(store.get("doneDates")||[]); dates.add(isoDay(new Date())); store.set("doneDates", [...dates].slice(-60));
   const mins = Math.max(1, Math.round((Date.now()-S.t0)/60000));
   const totalReps = Object.values(S.logs).flat().filter(Boolean).reduce((a,b)=>a+ +b,0);
-  const hist = getHistory(); hist.push({date: isoDay(new Date()), day: S.day, mins, reps: totalReps}); store.set("history", hist.slice(-200));
+  const hist = getHistory(); hist.push({id:Date.now(), date: isoDay(new Date()), day: S.day, mins, reps: totalReps, undo:S.snap}); store.set("history", hist.slice(-200));
   /* personal bests: heaviest weight for gym lifts, most reps in one set for bodyweight */
   const bests = store.get("bests")||{}, newPB = new Set();
   Object.entries(S.logs).forEach(([k,v])=>{
