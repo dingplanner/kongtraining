@@ -1173,7 +1173,12 @@ function finish(){
 
 home();
 /* Offline: cache the app's own files after the first visit. Skipped when opened as a local file. */
-if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")) navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  const hadWorker = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});
+  // A new version took over: reload once so it shows straight away (not mid-workout).
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{ if(hadWorker && !document.querySelector(".playtop") && !window.__reloaded){ window.__reloaded=true; location.reload(); } });
+}
 </script>
 
 </body>
